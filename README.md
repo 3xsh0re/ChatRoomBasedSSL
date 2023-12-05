@@ -1,7 +1,7 @@
 # Python-ChatRoom
 CA已完成,并运行在服务器上
 
-需要在Windows上安装OpenSSL
+需要在Windows上安装OpenSSL并添加至系统环境变量中
 
 CA服务器颁发证书与提供根证书:
 ![证书颁发与根证书发放](https://github.com/REMIXXYH/ChatRoom/assets/101967837/d1e98f66-f903-4fce-89bb-be01a7dc89dd)
