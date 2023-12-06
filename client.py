@@ -50,7 +50,7 @@ class SymmetricCipher:
 
 
 
-# 使用一个随机生成的密钥
+# 使用一个随机生成的密钥.
 symmetric_key = b'\x00' * 32
 
 # 创建加解密对象
