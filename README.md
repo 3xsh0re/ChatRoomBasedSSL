@@ -1,10 +1,9 @@
 # Python-ChatRoom
-CA已完成,并运行在服务器上
 
-需要在Windows上安装OpenSSL并添加至系统环境变量中
+SSL已完成,并利用CA认证进行运行握手
 
-CA服务器颁发证书与提供根证书:
-![证书颁发与根证书发放](https://github.com/REMIXXYH/ChatRoom/assets/101967837/d1e98f66-f903-4fce-89bb-be01a7dc89dd)
+依赖于CA证书
 
-一次完整的证书验证过程:
-![一次完整的证书验证过程](https://github.com/REMIXXYH/ChatRoom/assets/101967837/2d1cbb64-abd7-4c51-a9dc-65d2482eca84)
+握手交互过程演示:
+
+![image.png](https://s2.loli.net/2023/12/06/qvF1dOp5e3cMnAi.png)
