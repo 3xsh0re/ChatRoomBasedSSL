@@ -270,11 +270,15 @@ def CA():
         concurrent.futures.wait([thread1, thread2])
 
 
-# Client_Request_Cert("XieYuheng", "123456")
-# Server_Request_Cert()
-
+# Client端请求CA颁发证书
+Client_Request_Cert("ZZR", "123456")
+# 用户验证Server
 # Client_Verify()
-# Server_Verify("XieYuheng")
+
+# Server端请求CA颁发证书
+# Server_Request_Cert()
+# Server验证用户ZZR
+Server_Verify("ZZR")
 
 # CA端
 # CA()
