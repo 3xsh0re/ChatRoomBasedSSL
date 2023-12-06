@@ -153,8 +153,8 @@ def Client_Request_Cert(username, passwd):
         print(f'\033[32m[+]\033[0m证书{username}_req.crt制作完成,可在当前文件夹下查看')
 
 
-# Client验证证书
-def Client_Verify(username):
+# Client验证证书,若验证通过则在当前文件夹下生成服务端公钥
+def Client_Verify():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         client_socket.connect((CA_host, CA_download_port))
         crt_data = b''
@@ -167,10 +167,12 @@ def Client_Verify(username):
         with open('rootCA.crt', 'wb') as csr_file:
             csr_file.write(crt_data)
         print(f'\033[32m[+]\033[0mrootCA.crt下载完成,请在当前目录下查看')
-        verify_command = ['openssl', 'verify', '-CAfile', './rootCA.crt', f'{username}_req.crt']
+        verify_command = ['openssl', 'verify', '-CAfile', './rootCA.crt', f'Server_req.crt']
         result = subprocess.run(verify_command, capture_output=True, text=True)
         if "OK" in result.stdout.strip():
             print("\033[32m[+]服务器证书验证成功!\033[0m")
+            gen_server_pk_command = ['openssl x509 -in Server_req.crt -pubkey -noout > server_pk.pem']
+            print("\033[32m[+]已经在当前文件夹下生成服务端公钥server_pk.pem!\033[0m")
             return 1
         else:
             print("\033[31m[-]验证失败！！！\033[0m")
@@ -220,7 +222,7 @@ def Server_Request_Cert():
 
 
 # Server 请求验证客户端证书
-def Server_Verify():
+def Server_Verify(username):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client_socket:
         client_socket.connect((CA_host, CA_download_port))
         crt_data = b''
@@ -233,7 +235,7 @@ def Server_Verify():
         with open('rootCA.crt', 'wb') as csr_file:
             csr_file.write(crt_data)
         print(f'\033[32m[+]\033[0mrootCA.crt下载完成,请在当前目录下查看')
-        verify_command = ['openssl', 'verify', '-CAfile', './rootCA.crt', 'Server_req.crt']
+        verify_command = ['openssl', 'verify', '-CAfile', './rootCA.crt', f'{username}_req.crt']
         result = subprocess.run(verify_command, capture_output=True, text=True)
         if "OK" in result.stdout.strip():
             print("\033[32m[+]目标客户端证书验证成功!\033[0m")
@@ -268,13 +270,11 @@ def CA():
         concurrent.futures.wait([thread1, thread2])
 
 
-# Client端
-Client_Request_Cert("XieYuheng", "123456")
-Client_Verify("XieYuheng")
+# Client_Request_Cert("XieYuheng", "123456")
+# Server_Request_Cert()
 
-# Server端
-Server_Request_Cert()
-Server_Verify()
+# Client_Verify()
+# Server_Verify("XieYuheng")
 
 # CA端
 # CA()
