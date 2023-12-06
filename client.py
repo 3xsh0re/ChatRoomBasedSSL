@@ -1,11 +1,3 @@
-"""
-Author: Hmily
-Github: https://github.com/ihmily
-Date: 2022-06-30 18:25:27
-Copyright (c) 2022 by Hmily, All Rights Reserved.
-Function: Multi person chat room
-"""
-
 # 客户端
 import socket
 import threading
@@ -16,6 +8,57 @@ from tkinter.ttk import Treeview
 from stickers import *
 from login import *
 from register import *
+
+#  ->新加的
+from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from base64 import b64encode, b64decode
+import os
+
+class SymmetricCipher:
+    def __init__(self, key):
+        self.key = key
+        self.iv = os.urandom(16)  # 生成随机的 IV，长度根据算法要求
+
+    def encrypt(self, plaintext):
+        # 使用 PKCS7 填充
+        padder = padding.PKCS7(128).padder()
+        padded_data = padder.update(plaintext) + padder.finalize()
+
+        cipher = Cipher(algorithms.AES(self.key), modes.CFB8(self.iv), backend=default_backend())
+        encryptor = cipher.encryptor()
+        ciphertext = encryptor.update(padded_data) + encryptor.finalize()
+        return b64encode(self.iv + ciphertext).decode('utf-8')
+
+    def decrypt(self, ciphertext):
+        # 从密文中提取 IV
+        iv = b64decode(ciphertext)[:16]
+
+        cipher = Cipher(algorithms.AES(self.key), modes.CFB8(iv), backend=default_backend())
+        decryptor = cipher.decryptor()
+        padded_data = decryptor.update(b64decode(ciphertext)[16:]) + decryptor.finalize()
+
+        # 使用 PKCS7 反填充
+        unpadder = padding.PKCS7(128).unpadder()
+        plaintext = unpadder.update(padded_data) + unpadder.finalize()
+
+        return plaintext.decode('utf-8')
+
+
+    
+
+
+
+# 使用一个随机生成的密钥
+symmetric_key = b'\x00' * 32
+
+# 创建加解密对象
+symmetric_cipher = SymmetricCipher(symmetric_key)
+
+    
+#  ->新加的
+
 
 '''
 参数：
@@ -33,10 +76,20 @@ class ChatClient():
         self.scr2 = scr2
         self.fri_list = fri_list
         self.obj_emoji = obj_emoji
+        #新加的
+        self.symmetric_key =  b'\x00' * 32
+        self.symmetric_cipher = SymmetricCipher(self.symmetric_key)
 
     def toSend(self, *args):
         self.msg = self.scr2.get(1.0, 'end').strip()
-        self.send(self.msg)
+
+        # /新加的
+        plaintext = self.msg.encode('utf-8')  # 将 Unicode 字符串转换为字节序列
+        encrypted_msg = self.symmetric_cipher.encrypt(plaintext)
+        print('encrypted_msg:',encrypted_msg)
+        self.send(encrypted_msg)
+        # 新加的/
+
         if self.msg != '':
             now_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
             self.scr1.configure(state=NORMAL)
@@ -45,13 +98,20 @@ class ChatClient():
             self.scr1.see(END)
             self.scr2.delete('1.0', 'end')
             self.scr1.config(state=DISABLED)
-            print(f'{self.name}：成功发送消息', self.msg.strip())
+            print(f'{self.name}:sending successfully,message:', self.msg.strip())
             return "break"
 
     def toPrivateSend(self, *args):
         self.msg = self.scr2.get(1.0, 'end').strip()
+
+        #/新加的
+        encrypted_msg = self.symmetric_cipher.encrypt(self.msg)
+        #新加的/
         self.scr2.delete('1.0', 'end')
-        send_type, send_file = self.private_send(self.msg)
+        #/新加的
+        send_type, send_file = self.private_send(encrypted_msg)
+        #新加的/
+
         if self.msg != '' and self.fri_list.selection() != ():
             now_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
             self.scr1.configure(state=NORMAL)
@@ -185,8 +245,9 @@ class ChatClient():
 
             elif json_data['chat_type'] == "normal":
                 if json_data['message_type'] == "text":
+                    decrypted_content = self.symmetric_cipher.decrypt(json_data['content'])
                     self.scr1.insert("end", "{} {}:\n".format(json_data['send_user'], now_time), 'green')
-                    self.scr1.insert("end", json_data['content'] + '\n')
+                    self.scr1.insert("end", decrypted_content + '\n')
 
                 elif json_data['message_type'] == "stickers":
                     self.scr1.configure(state=NORMAL)
