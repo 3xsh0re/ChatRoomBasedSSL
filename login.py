@@ -1,10 +1,11 @@
 import random
 import sqlite3
+import hashlib
 from tkinter import *
 from tkinter import messagebox
 from PIL import Image, ImageTk
 from need_module import json,ctypes,sys,os
-
+import time
 
 
 class Login(object):
@@ -32,6 +33,12 @@ class Login(object):
         # 设置程序缩放
         self.root.tk.call('tk', 'scaling', ScaleFactor / 75)
         self.creatlogin()
+#new
+        self.failed_attempts = 0
+        self.locked_until = 0
+        self.max_failed_attempts = 3  # 设置最大失败次数
+        self.lock_duration = 60  # 锁定时长，单位为秒
+
 
     def creatlogin(self):
         self.fr2 = Frame(self.root)
@@ -99,6 +106,8 @@ class Login(object):
         self.tsLabel2 = Label(self.fr4, text="聊天登录界面 by LGH ", fg="red")
         self.tsLabel2.pack(side='right', anchor='s', pady=5)
 
+
+
     def red_msg(self):
         if self.rd_Passwd.get() == 1:
             # 创建新的JSON
@@ -135,7 +144,6 @@ class Login(object):
         self.Register(Login,self.Chat,self.root)  # 密码对，就把主窗体模块的界面加载
 
     def check_login(self, *args):
-        global usr_name
         self.usr_name = self.var_usr_name.get()
         self.usr_pwd = self.var_usr_pwd.get()
         conn = sqlite3.connect('yonghu.db')
@@ -143,36 +151,58 @@ class Login(object):
 
         if self.usr_name == '' or self.usr_pwd == '':
             messagebox.showwarning(title='提示', message="用户名密码不能为空")
-
         else:
-            # 执行查询语句：
-            cursor.execute('select username from user')
-            values = cursor.fetchall()
-            cursor.execute('select password from user where username="%s"' % self.usr_name)
-            # 获得查询结果集：
-            values2 = cursor.fetchall()
-            userList = []
-            for i in values:
-                # print(i[0])
-                userList.append(i[0])
-
-            if self.usr_name in userList:
-                if self.usr_pwd == values2[0][0]:
-                    messagebox.showinfo(title='提示', message='登录成功，欢迎回来!')
-                    self.root.unbind('<Return>')  # 解绑回车键事件
-                    self.red_msg()
-                    print('是否记住密码:',self.rd_Passwd.get())
-                    self.fr1.destroy()
-                    self.fr2.destroy()
-                    self.fr3.destroy()
-                    self.fr4.destroy()  # 登录界面卸载
-                    self.Chat(self.usr_name)
-
-                else:
-                    messagebox.showerror(title='提示', message="用户名密码错误！")
+            # 检查账号是否处于锁定状态
+            if self.locked_until > time.time():
+                remaining_time = int(self.locked_until - time.time())
+                messagebox.showwarning(title='提示', message=f"账号已被锁定，请在{remaining_time}秒后重试！")
             else:
-                messagebox.showerror(title='提示', message="没有该用户名！")
-            cursor.close()
-            conn.close()
-            # 下面返回字符串break使回车绑定事件只触发绑定的方法而不进行默认的换行操作
-            return 'break'
+                # 查询哈希密码
+                cursor.execute('SELECT password FROM user WHERE username=?', (self.usr_name,))
+                hashed_pwd = cursor.fetchone()
+
+                if hashed_pwd:
+                    # 验证密码，首先尝试使用明文密码验证
+                    if self.usr_pwd == hashed_pwd[0]:
+                        messagebox.showinfo(title='提示', message='登录成功，欢迎回来!')
+                        self.root.unbind('<Return>')
+                        self.red_msg()
+                        print('是否记住密码:', self.rd_Passwd.get())
+                        self.fr1.destroy()
+                        self.fr2.destroy()
+                        self.fr3.destroy()
+                        self.fr4.destroy()
+                        self.Chat(self.usr_name)
+                        # 重置登录失败次数
+                        self.failed_attempts = 0
+                    else:
+                        # 尝试使用哈希密码验证
+                        hashed_input_pwd = hashlib.sha256(self.usr_pwd.encode()).hexdigest()
+                        if hashed_input_pwd == hashed_pwd[0]:
+                            messagebox.showinfo(title='提示', message='登录成功，欢迎回来!')
+                            self.root.unbind('<Return>')
+                            self.red_msg()
+                            print('是否记住密码:', self.rd_Passwd.get())
+                            self.fr1.destroy()
+                            self.fr2.destroy()
+                            self.fr3.destroy()
+                            self.fr4.destroy()
+                            self.Chat(self.usr_name)
+                            # 重置登录失败次数
+                            self.failed_attempts = 0
+                        else:
+                            # 增加登录失败次数并检查是否需要锁定账号
+                            self.failed_attempts += 1
+                            if self.failed_attempts >= self.max_failed_attempts:
+                                # 锁定账号
+                                self.locked_until = time.time() + self.lock_duration
+                                self.failed_attempts = 0  # 重置登录失败次数
+                                messagebox.showerror(title='提示', message="登录失败次数过多，账号已被锁定！")
+                            else:
+                                messagebox.showerror(title='提示', message="用户名密码错误！")
+                else:
+                    messagebox.showerror(title='提示', message="没有该用户名！")
+
+        cursor.close()
+        conn.close()
+        return 'break'
