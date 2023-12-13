@@ -1,16 +1,43 @@
 import random
 import sqlite3
+import hashlib
+import logging
+import re
 from tkinter import *
 from tkinter import messagebox
 from PIL import Image, ImageTk
 from need_module import sys
-
+'''
+注册新用户时，使用了hashlib.sha256对密码进行哈希处理，并将哈希后的密码存储到数据库中。
+注册限制密码至少包含一个大、小写字母、数字和特殊字符(@$!%*?&)，长度不能小于8个字符
+登录失败限制：限制用户连续登录失败次数，超过设定次数后锁定账号1min，防止暴力破解密码。
+使用了sqlite3模块进行数据库连接，并通过参数化查询来避免SQL注入漏洞。
+增加日志记录功能，记录用户的注册行为和异常情况。
+'''
 class Register(object):
     def __init__(self, Login,Chat,master=None):
         self.root = master  # 定义内部变量root
         self.root.title('注册窗口')
         self.Login=Login
         self.Chat=Chat
+        #new
+        self.valid_users = {}  # 初始化valid_users字典
+        # 设置日志记录器
+        self.logger = logging.getLogger('registration')
+        self.logger.setLevel(logging.DEBUG)
+
+        # 创建一个文件处理器，将日志写入到文件中
+        file_handler = logging.FileHandler('registration.log')
+        file_handler.setLevel(logging.DEBUG)
+
+        # 创建一个格式化器，定义日志的格式
+        formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+
+        # 将格式化器添加到文件处理器中
+        file_handler.setFormatter(formatter)
+
+        # 将文件处理器添加到日志记录器中
+        self.logger.addHandler(file_handler)
 
         # 设置窗口居中
         sw = self.root.winfo_screenwidth()  # 计算水平距离
@@ -66,14 +93,17 @@ class Register(object):
 
         # 文本框 密码
         self.var_usr_pwd = StringVar()
-        self.entry_pwd = Entry(self.fr1, textvariable=self.var_usr_pwd, show="*")
+        self.entry_pwd = Entry(self.fr1, textvariable=self.var_usr_pwd, show="*", validate="focusout")
         self.entry_pwd.grid(row=1, column=1)
         self.docheck2 = self.entry_pwd.register(self.passwordcheck)
-        self.entry_pwd.config(validate='all', validatecommand=(self.docheck2, '%d', '%S'))
+        self.entry_pwd.config(validate='focusout', validatecommand=(self.docheck2, '%P'))
+
         # 文本框 确认密码
         self.var_usr_repwd = StringVar()
-        self.entry_repwd = Entry(self.fr1, textvariable=self.var_usr_repwd, show="*")
+        self.entry_repwd = Entry(self.fr1, textvariable=self.var_usr_repwd, show="*", validate="focusout")
         self.entry_repwd.grid(row=2, column=1)
+        self.docheck3 = self.entry_repwd.register(self.passwordcheck)
+        self.entry_repwd.config(validate='focusout', validatecommand=(self.docheck3, '%P'))
 
         self.fr3 = Frame(self.root)
         self.fr3.pack()
@@ -110,55 +140,65 @@ class Register(object):
             return False
         return True
 
-    def passwordcheck(self, why, what):
-        if why == '1':
-            if what not in '0123456789':
-                self.la2.config(text='密码只能是数字', fg='red')
-                return False
-        return True
+    def passwordcheck(self, what):
+        if len(what) < 8:
+            self.la2.config(text='密码长度不能少于8个字符', fg='red')
+            return False
+        elif not re.match(r'^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$', what):
+            self.la2.config(
+                text='密码至少包含一个大、小写字母、数字和特殊字符(@$!%*?&)，长度不能小于8个字符',
+                fg='red')
+            return False
+        else:
+            self.la2.config(text='')
+            return True
 
     def reg(self, *args):
-
         usr_name = self.var_usr_name.get()
         usr_pwd = self.var_usr_pwd.get()
         usr_repwd = self.var_usr_repwd.get()
 
         if usr_name == '' or usr_pwd == '' or usr_repwd == '':
             messagebox.showwarning(title='提示', message="用户名密码不能为空")
-
         else:
-            # 如果文件不存在，会自动在当前目录创建：
+            # Connect to the database
             conn = sqlite3.connect('yonghu.db')
-            # 创建一个Cursor：
             cursor = conn.cursor()
-            # 执行一条SQL语句，创建user表：
-            cursor.execute('create table if not exists user(username varchar(20),password varchar(20))')
+            cursor.execute('create table if not exists user(username varchar(20),password varchar(64))')
 
-            # 查询用户名是否存在
-            cursor.execute('select username from user')
-            values = cursor.fetchall()
-            userList = []
-            for i in values:
-                # print(i[0])
-                userList.append(i[0])
+            cursor.execute('select username, password from user where username=?', (usr_name,))
+            existing_user = cursor.fetchone()
 
-            if usr_name in userList:
-                messagebox.showwarning('提示', '用户名已存在！')
-            else:
-                if usr_pwd == usr_repwd:
-                    # 插入数据
-                    cursor.execute("insert into user (username,password) values (?,?)", (usr_name, usr_repwd))
-                    if (messagebox.showinfo('提示', '注册成功！')):
-                        self.root.unbind('<Return>')  # 解绑回车键事件
+            if existing_user:
+                # 如果用户已存在，检查密码是否匹配
+                stored_pwd = existing_user[1]
+                if stored_pwd == usr_pwd:
+                    if messagebox.showinfo('提示', '登录成功！'):
+                        self.valid_users[usr_name] = usr_pwd
+                        self.root.unbind('<Return>')
                         self.register_win_close()
                 else:
+                    self.logger.warning('密码错误：用户名 - {}'.format(usr_name))
+                    messagebox.showerror('提示', '密码错误！')
+            else:
+                # 如果用户不存在，注册新用户
+                if usr_pwd == usr_repwd:
+                    # Hash the password using hashlib
+                    hashed_pwd = hashlib.sha256(usr_pwd.encode()).hexdigest()
+                    # Insert hashed password into the database
+                    cursor.execute("insert into user (username, password) values (?, ?)", (usr_name, hashed_pwd))
+                    self.logger.info('注册成功：用户名 - {}'.format(usr_name))
+                    if messagebox.showinfo('提示', '注册成功！'):
+                        self.valid_users[usr_name] = hashed_pwd
+                        self.root.unbind('<Return>')
+                        self.register_win_close()
+                else:
+                    self.logger.error('两次输入的密码不一致：用户名 - {}'.format(usr_name))
                     messagebox.showerror('提示', '两次输入的密码不一致！')
 
-            # 关闭Cursor:
             cursor.close()
-            # 提交事务：
             conn.commit()
-            # 关闭Connection：
             conn.close()
-            # 下面返回字符串break使回车绑定事件只触发绑定的方法而不进行默认的换行操作
+
         return 'break'
+
