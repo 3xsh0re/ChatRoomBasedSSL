@@ -1,4 +1,5 @@
 import socket
+import SSL
 from need_module import json,logging,time
 
 
@@ -6,6 +7,9 @@ def main():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # 创建socket对象
     s_addr = ('127.0.0.1', 9999)
     s.bind(s_addr)  # 绑定地址和端口
+
+    
+
 
     logging.info('UDP Server on %s:%s...', s_addr[0], s_addr[1])
 
@@ -24,6 +28,28 @@ def main():
             print(json_data)
 
             if json_data['message_type']=="init_message":
+
+                server = SSL.Server()
+                while True:
+                    data, addr = s.recvfrom(1024)  # 等待接收客户端消息存放在2个变量data和addr里
+                    json_data=json.loads(data.decode('utf-8'))
+                    print(json_data)
+                    if (len(json_data) != 0): break
+                client_hello = json_data["client_hello"]
+                server_hello = server.respond_to_client_hello(client_hello)
+                while True:
+                    data, addr = s.recvfrom(1024)  # 等待接收客户端消息存放在2个变量data和addr里
+                    json_data=json.loads(data.decode('utf-8'))
+                    print(json_data)
+                    if (len(json_data) != 0): break
+                shared_secret = json_data["shared_secret"]
+                client_certificate_verified = server.verify_client_certificate(client_hello)
+                if not client_certificate_verified:
+                    print("\031[32m[SSL]\033[0m客户端证书验证失败")
+                    return
+                else:
+                    print("\033[32m[SSL]\033[0m客户端证书验证成功")
+
                 if json_data['content'] not in user:  # address不等于addr时执行下面的代码
                     user[json_data['content']]=addr
                     user_list=[i for i in user.keys()]

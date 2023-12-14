@@ -2,6 +2,7 @@
 import socket
 import threading
 import time
+import SSL
 from tkinter import scrolledtext
 from tkinter.filedialog import askopenfilename
 from tkinter.ttk import Treeview
@@ -15,6 +16,14 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 from base64 import b64encode, b64decode
 import os
+
+'''
+参数：
+    sock：定义一个实例化socket对象
+    server：传递的服务器IP和端口
+'''
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # 使用udp传输方式
+server = ('127.0.0.1', 9999)
 
 class SymmetricCipher:
     def __init__(self, key):
@@ -46,38 +55,63 @@ class SymmetricCipher:
         return plaintext.decode('utf-8')
 
 
-    
 
-
-
-# 使用一个随机生成的密钥
-symmetric_key = b'\x00' * 32
-
-# 创建加解密对象
-symmetric_cipher = SymmetricCipher(symmetric_key)
 
     
 #  ->新加的
 
 
-'''
-参数：
-    sock：定义一个实例化socket对象
-    server：传递的服务器IP和端口
-'''
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # 使用udp传输方式
-server = ('127.0.0.1', 9999)
+
 
 
 class ChatClient():
+
+    def client_perform_ssl_handshake(name,passwd):
+        client = SSL.Client(name, passwd)
+        client_hello = client.send_client_hello(name)
+
+        message = {"client_hello":client_hello}
+        jsondata = json.dumps(message, ensure_ascii=False)
+        sock.sendto(jsondata.encode('utf-8'), server)
+        while True:
+            data = sock.recv(1024)
+            if len(data) != 0: break
+        source = data.decode('utf-8')
+        json_data = json.loads(data.decode('utf-8'))
+        server_hello = json_data["server_hello"]
+
+        shared_secret = client.process_server_hello(server_hello)
+        message = {"shared_secret":shared_secret}
+        jsondata = json.dumps(message, ensure_ascii=False)
+        sock.sendto(jsondata.encode('utf-8'), server)
+        
+
+        server_certificate_verified = client.verify_server_certificate()
+        if not server_certificate_verified:
+            print("\033[31m[SSL]\033[0m服务器证书验证失败")
+            return
+        else:
+            print("\033[32m[SSL]\033[0m服务器证书验证成功")
+        # 输出共享密钥
+        print("\033[32m[SSL]\033[0m共享密钥:", shared_secret)
+
+
+
     def __init__(self, name, scr1, scr2, fri_list, obj_emoji):
+
+        conn = sqlite3.connect('yonghu.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT password FROM user WHERE username=?', (self.usr_name,))
+        hashed_pwd = cursor.fetchone()
+        self.client_perform_ssl_handshake(name,hashed_pwd[0])
+
         self.name = name
         self.scr1 = scr1
         self.scr2 = scr2
         self.fri_list = fri_list
         self.obj_emoji = obj_emoji
         #新加的
-        self.symmetric_key =  b'\x00' * 32
+        self.symmetric_key =  self.shared_secret
         self.symmetric_cipher = SymmetricCipher(self.symmetric_key)
 
     def toSend(self, *args):
