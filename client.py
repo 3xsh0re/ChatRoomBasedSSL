@@ -83,8 +83,8 @@ class ChatClient:
         json_data = json.loads(data.decode("utf-8"))
         server_hello = json_data["server_hello"]
 
-        with open(f"./{name}_req.crt", "rb") as file:
-            crt_data = file.read()
+        with open(f"./{name}_req.crt", "r") as file:
+            crt_data = str(file.read())
             message = {"req_crt": crt_data}
             jsondata = json.dumps(message, ensure_ascii=False)
             sock.sendto(jsondata.encode("utf-8"), server)

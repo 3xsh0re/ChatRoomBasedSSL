@@ -37,9 +37,8 @@ def main():
                     print(json_data)
                     if len(json_data) != 0:
                         break
-                crt_data = b""
-                crt_data += json_data["req_crt"]
-                with open(f"{client_name}_req.crt", "wb") as csr_file:
+                crt_data = json_data["req_crt"]
+                with open(f"{client_name}_req.crt", "w") as csr_file:
                     csr_file.write(crt_data)
 
                 while True:
