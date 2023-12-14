@@ -60,6 +60,7 @@ class SymmetricCipher:
 
 
 class ChatClient():
+    shared_secret = 0
 
     def client_perform_ssl_handshake(self,name, passwd):
         client = SSL.Client(name, passwd)
