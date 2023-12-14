@@ -23,7 +23,8 @@ import os
     server：传递的服务器IP和端口
 '''
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # 使用udp传输方式
-server = ('127.0.0.1', 9999)
+server = ('47.93.254.31', 9999)
+
 
 class SymmetricCipher:
     def __init__(self, key):
@@ -55,24 +56,19 @@ class SymmetricCipher:
         return plaintext.decode('utf-8')
 
 
-
-
-    
 #  ->新加的
-
-
-
 
 
 class ChatClient():
 
-    def client_perform_ssl_handshake(name,passwd):
+    def client_perform_ssl_handshake(self,name, passwd):
         client = SSL.Client(name, passwd)
         client_hello = client.send_client_hello(name)
 
-        message = {"client_hello":client_hello}
+        message = {"client_hello": client_hello}
         jsondata = json.dumps(message, ensure_ascii=False)
         sock.sendto(jsondata.encode('utf-8'), server)
+
         while True:
             data = sock.recv(1024)
             if len(data) != 0: break
@@ -81,10 +77,9 @@ class ChatClient():
         server_hello = json_data["server_hello"]
 
         shared_secret = client.process_server_hello(server_hello)
-        message = {"shared_secret":shared_secret}
+        message = {"shared_secret": shared_secret}
         jsondata = json.dumps(message, ensure_ascii=False)
         sock.sendto(jsondata.encode('utf-8'), server)
-        
 
         server_certificate_verified = client.verify_server_certificate()
         if not server_certificate_verified:
@@ -95,23 +90,21 @@ class ChatClient():
         # 输出共享密钥
         print("\033[32m[SSL]\033[0m共享密钥:", shared_secret)
 
-
-
     def __init__(self, name, scr1, scr2, fri_list, obj_emoji):
 
         conn = sqlite3.connect('yonghu.db')
         cursor = conn.cursor()
-        cursor.execute('SELECT password FROM user WHERE username=?', (self.usr_name,))
+        cursor.execute('SELECT password FROM user WHERE username=?', (name,))
         hashed_pwd = cursor.fetchone()
-        self.client_perform_ssl_handshake(name,hashed_pwd[0])
+        self.client_perform_ssl_handshake(str(name), str(hashed_pwd[0]))
 
         self.name = name
         self.scr1 = scr1
         self.scr2 = scr2
         self.fri_list = fri_list
         self.obj_emoji = obj_emoji
-        #新加的
-        self.symmetric_key =  self.shared_secret
+        # 新加的
+        self.symmetric_key = self.shared_secret
         self.symmetric_cipher = SymmetricCipher(self.symmetric_key)
 
     def toSend(self, *args):
@@ -120,7 +113,7 @@ class ChatClient():
         # /新加的
         plaintext = self.msg.encode('utf-8')  # 将 Unicode 字符串转换为字节序列
         encrypted_msg = self.symmetric_cipher.encrypt(plaintext)
-        print('encrypted_msg:',encrypted_msg)
+        print('encrypted_msg:', encrypted_msg)
         self.send(encrypted_msg)
         # 新加的/
 
@@ -138,13 +131,13 @@ class ChatClient():
     def toPrivateSend(self, *args):
         self.msg = self.scr2.get(1.0, 'end').strip()
 
-        #/新加的
+        # /新加的
         encrypted_msg = self.symmetric_cipher.encrypt(self.msg)
-        #新加的/
+        # 新加的/
         self.scr2.delete('1.0', 'end')
-        #/新加的
+        # /新加的
         send_type, send_file = self.private_send(encrypted_msg)
-        #新加的/
+        # 新加的/
 
         if self.msg != '' and self.fri_list.selection() != ():
             now_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
@@ -430,7 +423,8 @@ class ChatUI():
             sys.exit(0)
 
     def openfile(self):
-        r = askopenfilename(title='打开文件', filetypes=[('All File', '*.*'), ('文本文件', '.txt'), ('python', '*.py *.pyw')])
+        r = askopenfilename(title='打开文件',
+                            filetypes=[('All File', '*.*'), ('文本文件', '.txt'), ('python', '*.py *.pyw')])
         self.scr2.insert(INSERT, r)
 
     def chat(self, usename):

@@ -5,11 +5,8 @@ from need_module import json,logging,time
 
 def main():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # 创建socket对象
-    s_addr = ('127.0.0.1', 9999)
+    s_addr = ('0.0.0.0', 9999)
     s.bind(s_addr)  # 绑定地址和端口
-
-    
-
 
     logging.info('UDP Server on %s:%s...', s_addr[0], s_addr[1])
 
@@ -18,28 +15,26 @@ def main():
     print('----------服务器已启动-----------')
     print('Bind UDP on ' + str(s_addr))
     print('等待客户端数据...')
+
     while True:
 
         try:
-
             data, addr = s.recvfrom(1024)  # 等待接收客户端消息存放在2个变量data和addr里
-            # print(data)
             json_data=json.loads(data.decode('utf-8'))
             print(json_data)
-
-            if json_data['message_type']=="init_message":
-
+            if 'client_hello' in json_data:
                 server = SSL.Server()
-                while True:
-                    data, addr = s.recvfrom(1024)  # 等待接收客户端消息存放在2个变量data和addr里
-                    json_data=json.loads(data.decode('utf-8'))
-                    print(json_data)
-                    if (len(json_data) != 0): break
+                json_data = json.loads(data.decode('utf-8'))
+                print(json_data)
                 client_hello = json_data["client_hello"]
                 server_hello = server.respond_to_client_hello(client_hello)
+                hello = {'server_hello':server_hello}
+                hello_json=json.dumps(hello, ensure_ascii=False)
+                s.sendto(hello_json.encode('utf-8'),addr)
+
                 while True:
                     data, addr = s.recvfrom(1024)  # 等待接收客户端消息存放在2个变量data和addr里
-                    json_data=json.loads(data.decode('utf-8'))
+                    json_data = json.loads(data.decode('utf-8'))
                     print(json_data)
                     if (len(json_data) != 0): break
                 shared_secret = json_data["shared_secret"]
@@ -49,7 +44,8 @@ def main():
                     return
                 else:
                     print("\033[32m[SSL]\033[0m客户端证书验证成功")
-
+                pass
+            elif json_data['message_type']=="init_message":
                 if json_data['content'] not in user:  # address不等于addr时执行下面的代码
                     user[json_data['content']]=addr
                     user_list=[i for i in user.keys()]
@@ -126,6 +122,30 @@ def main():
 
                     now_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime())
                     print('%s: "%s" 文件发送完成! from %s:%s [目标:%s] at %s' % (send_user, filename, addr[0], addr[1], user[recv_user], now_time))
+
+            elif 'client_hello' in json_data:
+                server = SSL.Server()
+                while True:
+                    data, addr = s.recvfrom(1024)  # 等待接收客户端消息存放在2个变量data和addr里
+                    json_data = json.loads(data.decode('utf-8'))
+                    print(json_data)
+                    if (len(json_data) != 0): break
+                client_hello = json_data["client_hello"]
+                server_hello = server.respond_to_client_hello(client_hello)
+                while True:
+                    data, addr = s.recvfrom(1024)  # 等待接收客户端消息存放在2个变量data和addr里
+                    json_data = json.loads(data.decode('utf-8'))
+                    print(json_data)
+                    if (len(json_data) != 0): break
+                shared_secret = json_data["shared_secret"]
+                client_certificate_verified = server.verify_client_certificate(client_hello)
+                if not client_certificate_verified:
+                    print("\031[32m[SSL]\033[0m客户端证书验证失败")
+                    return
+                else:
+                    print("\033[32m[SSL]\033[0m客户端证书验证成功")
+                pass
+
 
         except ConnectionResetError:
             logging.warning('Someone left unexpectedly.')
