@@ -39,7 +39,7 @@ class Client:
         print("\033[32m[SSL]\033[0m开始生成客户端的证书")
         CA.Client_Request_Cert(username, passwd)
 
-    def send_client_hello(self,name):
+    def send_client_hello(self, name):
         # 客户端发送Hello消息及证书
         client_hello = name
         print("\033[32m[SSL]\033[0m客户端发送Hello消息")
@@ -62,7 +62,7 @@ def perform_ssl_handshake():
     client = Client("zzr", "123456")
 
     # 客户端发送Hello消息
-    client_hello = client.send_client_hello(name)
+    client_hello = client.send_client_hello("zzr")
     print("\033[32m[SSL]\033[0m客户端发送Hello消息")
 
     # 服务器响应客户端的Hello消息
