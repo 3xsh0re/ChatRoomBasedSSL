@@ -52,7 +52,7 @@ class SymmetricCipher:
         )
         decryptor = cipher.decryptor()
         padded_data = (
-            decryptor.update(b64decode(ciphertext)[16:]) + decryptor.finalize()
+                decryptor.update(b64decode(ciphertext)[16:]) + decryptor.finalize()
         )
 
         # 使用 PKCS7 反填充
@@ -66,6 +66,7 @@ class SymmetricCipher:
 
 
 class ChatClient:
+    # 生成的共享密钥
     shared_secret = ""
 
     def client_perform_ssl_handshake(self, name, passwd):
@@ -75,33 +76,41 @@ class ChatClient:
         message = {"client_hello": client_hello}
         jsondata = json.dumps(message, ensure_ascii=False)
         sock.sendto(jsondata.encode("utf-8"), server)
+        print("\033[32m[+]\033[0m客户端握手消息发送成功")
 
+        # 等待服务端收到握手消息
         while True:
             data = sock.recv(1024)
             if len(data) != 0:
                 break
         json_data = json.loads(data.decode("utf-8"))
         server_hello = json_data["server_hello"]
+        print("\033[32m[+]\033[0m收到Server的握手消息")
 
-        with open(f"./{name}_req.crt", "r") as file:
-            crt_data = str(file.read())
-            print(message)
-            sock.sendto(crt_data.encode("utf-8"), server)
-            print(f"\033[32m[+]\033[0m{name}_req.crt发送完成!")
+        # 验证服务端证书
+        while True:
+            data, addr = sock.recvfrom(4096)
+            crt_data = data.decode("utf-8")
+            if len(crt_data) != 0:
+                break
+        with open("Server_req.crt", "w") as csr_file:
+            csr_file.write(crt_data)
 
-        shared_secret = client.process_server_hello(server_hello)
-        message = {"shared_secret": shared_secret}
-        jsondata = json.dumps(message, ensure_ascii=False)
-        sock.sendto(jsondata.encode("utf-8"), server)
+        # 验证服务端证书
+        if client.verify_server_certificate():
+            with open(f"./{name}_req.crt", "r") as file:
+                crt_data = str(file.read())
+                sock.sendto(crt_data.encode("utf-8"), server)
+                print(f"\033[32m[+]\033[0m{name}客户端证书发送完成!")
 
-        server_certificate_verified = client.verify_server_certificate()
-        if not server_certificate_verified:
-            print("\033[31m[SSL]\033[0m服务器证书验证失败")
-            return
+            shared_secret = client.process_server_hello(server_hello)
+            message = {"shared_secret": shared_secret}
+            jsondata = json.dumps(message, ensure_ascii=False)
+            sock.sendto(jsondata.encode("utf-8"), server)
+            print("\033[32m[+]\033[0mRSA加密后的共享密钥:", shared_secret)
         else:
-            print("\033[32m[SSL]\033[0m服务器证书验证成功")
-        # 输出共享密钥
-        print("\033[32m[SSL]\033[0m共享密钥:", shared_secret)
+            sock.sendto("NOT_PASS_VERIFY".encode("utf-8"), server)
+            print(f"\033[32m[-]\033[0m本次连接请求结束")
 
     def __init__(self, name, scr1, scr2, fri_list, obj_emoji):
         conn = sqlite3.connect("yonghu.db")
@@ -191,10 +200,10 @@ class ChatClient:
         for i in range(fhead // 1024 + 1):
             time.sleep(0.0000000001)  # 防止数据发送太快，服务器来不及接收出错
             if 1024 * (i + 1) > fhead:  # 是否到最后
-                sock.sendto(data[1024 * i :], server)  # 最后一次剩下的数据传给对方
+                sock.sendto(data[1024 * i:], server)  # 最后一次剩下的数据传给对方
                 print("第" + str(i + 1) + "次发送文件数据")
             else:
-                sock.sendto(data[1024 * i : 1024 * (i + 1)], server)
+                sock.sendto(data[1024 * i: 1024 * (i + 1)], server)
                 print("第" + str(i + 1) + "次发送文件数据")
 
     def succ_recv(self, filename, sourcename):
@@ -271,8 +280,8 @@ class ChatClient:
                 user_list = eval(json_data["online_user"])
                 for user in user_list:
                     if (
-                        str(user) not in self.fri_list.get_children()
-                        and str(user) != self.name
+                            str(user) not in self.fri_list.get_children()
+                            and str(user) != self.name
                     ):  # 如果不在列表中
                         self.fri_list.insert(
                             "",

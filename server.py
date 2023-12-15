@@ -20,43 +20,51 @@ def main():
         try:
             data, addr = s.recvfrom(1024)  # 等待接收客户端消息存放在2个变量data和addr里
             json_data = json.loads(data.decode("utf-8"))
-            print(json_data)
-            if "client_hello" in json_data:
+
+            if "client_hello" in json_data:  # 接收SSL握手请求
                 server = SSL.Server()
                 json_data = json.loads(data.decode("utf-8"))
-                print(json_data)
                 client_name = json_data["client_hello"]
                 server_hello = server.respond_to_client_hello(client_name)
+
+                # 向客户端发送握手消息
                 hello = {"server_hello": server_hello}
                 hello_json = json.dumps(hello, ensure_ascii=False)
                 s.sendto(hello_json.encode("utf-8"), addr)
 
-                while True:
-                    data, addr = s.recvfrom()  # 等待接收客户端消息存放在2个变量data和addr里
-                    json_data = data.decode("utf-8")
-                    print(json_data)
-                    if len(json_data) != 0:
-                        break
-                crt_data = json_data
-                with open(f"{client_name}_req.crt", "w") as csr_file:
-                    csr_file.write(crt_data)
+                # 向客户端发送证书
+                with open(f"./Server_req.crt", "r") as file:
+                    crt_data = str(file.read())
+                    s.sendto(crt_data.encode("utf-8"), addr)
+                    print("\033[32m[+]\033[0m服务端证书发送完成!")
 
+                # 接收客户端证书
                 while True:
-                    data, addr = s.recvfrom(1024)  # 等待接收客户端消息存放在2个变量data和addr里
-                    json_data = json.loads(data.decode("utf-8"))
-                    print(json_data)
-                    if len(json_data) != 0:
+                    data, addr = s.recvfrom(4096)
+                    crt_data = data.decode("utf-8")
+                    if len(crt_data) != 0:
                         break
-                shared_secret = json_data["shared_secret"]
-                client_certificate_verified = server.verify_client_certificate(
-                    client_name
-                )
-                if not client_certificate_verified:
-                    print("\031[32m[SSL]\033[0m客户端证书验证失败")
-                    return
+                if "NOT_PASS_VERIFY" in crt_data:
+                    print(f"\033[31m[-]\033[0m没有通过客户端验证,本次连接请求结束")
                 else:
-                    print("\033[32m[SSL]\033[0m客户端证书验证成功")
-                pass
+                    with open(f"{client_name}_req.crt", "w") as csr_file:
+                        csr_file.write(crt_data)
+                    print(f"\033[32m[+]\033[0m客户端证书接收成功")
+                    # 验证证书
+                    if server.verify_client_certificate(client_name):
+                        # 接收密钥
+                        while True:
+                            data, addr = s.recvfrom(1024)  # 等待接收客户端消息存放在2个变量data和addr里
+                            json_data = json.loads(data.decode("utf-8"))
+                            if len(json_data) != 0:
+                                break
+                        # 下面为本次客户端的共享密钥
+                        shared_secret_enc = json_data["shared_secret"]
+                        # RSA解出密钥,等待实现
+
+
+            # 下面都是普通消息处理分支
+
             elif json_data["message_type"] == "init_message":
                 if json_data["content"] not in user:  # address不等于addr时执行下面的代码
                     user[json_data["content"]] = addr

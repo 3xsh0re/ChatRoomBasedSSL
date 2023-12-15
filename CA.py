@@ -240,14 +240,14 @@ def Client_Verify():
         ]
         result = subprocess.run(verify_command, capture_output=True, text=True)
         if "OK" in result.stdout.strip():
-            print("\033[32m[+]服务器证书验证成功!\033[0m")
+            print("\033[32m[+]服务端证书验证成功!\033[0m")
             gen_server_pk_command = [
                 "openssl x509 -in Server_req.crt -pubkey -noout > server_pk.pem"
             ]
             print("\033[32m[+]已经在当前文件夹下生成服务端公钥server_pk.pem!\033[0m")
             return 1
         else:
-            print("\033[31m[-]验证失败！！！\033[0m")
+            print("\033[31m[-]服务端证书验证失败！！！\033[0m")
             return 0
 
 
