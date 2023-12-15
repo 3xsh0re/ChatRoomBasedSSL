@@ -110,15 +110,18 @@ class ChatClient:
         if client.verify_server_certificate():
             with open(f"./{name}_req.crt", "r") as file:
                 client_crt_data = SSL.encrypt_message(str(file.read()), server_crt_data)
-                sock.sendto(client_crt_data.encode("utf-8"), server)
-                print(f"\033[32m[+]\033[0m{name}客户端证书发送完成!")
-
+            sock.sendto(client_crt_data.encode("utf-8"), server)  # 发送客户端证书，服务端公钥加密
+            print(f"\033[32m[+]\033[0m{name}客户端证书发送完成!")
             self.symmetric_key = self.expand_string_to_bytes(
                 client.process_server_hello(server_hello)
             )
-            message = {"shared_secret": str(self.symmetric_key)}
-            jsondata = json.dumps(message, ensure_ascii=False)
-            sock.sendto(jsondata.encode("utf-8"), server)
+            shared_secret = {
+                "shared_secret": SSL.encrypt_message(
+                    str(self.symmetric_key), server_crt_data
+                )
+            }
+            jsondata = json.dumps(shared_secret, ensure_ascii=False)
+            sock.sendto(jsondata.encode("utf-8"), server)  # 发送共享密钥，服务端公钥加密
             print("\033[32m[+]\033[0mRSA加密后的共享密钥:", self.symmetric_key)
         else:
             sock.sendto("NOT_PASS_VERIFY".encode("utf-8"), server)
