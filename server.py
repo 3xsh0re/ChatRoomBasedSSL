@@ -1,6 +1,47 @@
 import socket
 import SSL
 from need_module import json, logging, time
+from cryptography.hazmat.primitives import padding
+from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+from cryptography.hazmat.backends import default_backend
+from base64 import b64encode, b64decode
+import os
+
+
+class SymmetricCipher:
+    def __init__(self, key):
+        self.key = key
+        self.iv = os.urandom(16)  # 生成随机的 IV，长度根据算法要求
+
+    def encrypt(self, plaintext):
+        # 使用 PKCS7 填充
+        padder = padding.PKCS7(128).padder()
+        padded_data = padder.update(plaintext) + padder.finalize()
+
+        cipher = Cipher(
+            algorithms.AES(self.key), modes.CFB8(self.iv), backend=default_backend()
+        )
+        encryptor = cipher.encryptor()
+        ciphertext = encryptor.update(padded_data) + encryptor.finalize()
+        return b64encode(self.iv + ciphertext).decode("utf-8")
+
+    def decrypt(self, ciphertext):
+        # 从密文中提取 IV
+        iv = b64decode(ciphertext)[:16]
+
+        cipher = Cipher(
+            algorithms.AES(self.key), modes.CFB8(iv), backend=default_backend()
+        )
+        decryptor = cipher.decryptor()
+
+        # 使用 PKCS7 反填充
+        unpadder = padding.PKCS7(128).unpadder()
+        padded_data = (
+                decryptor.update(b64decode(ciphertext)[16:]) + decryptor.finalize()
+        )
+        plaintext = unpadder.update(padded_data) + unpadder.finalize()
+
+        return plaintext.decode("utf-8")
 
 
 def main():
@@ -11,6 +52,7 @@ def main():
     logging.info("UDP Server on %s:%s...", s_addr[0], s_addr[1])
 
     user = {}  # 存放字典{name:addr}
+    user_key = {}  # 存放字典{name,skey}
 
     print("----------服务器已启动-----------")
     print("Bind UDP on " + str(s_addr))
@@ -63,7 +105,7 @@ def main():
                         print(f"\033[32m[+]\033[0m正在等待客户端传输密钥")
                         while True:
                             data, addr = s.recvfrom(1024)  # 等待接收客户端消息存放在2个变量data和addr里
-                            json_data = json.loads(data.decode("utf-8"))
+                            key = data.decode("utf-8")
                             if len(json_data) != 0:
                                 break
                         # 下面为本次客户端的共享密钥
@@ -112,7 +154,11 @@ def main():
                 recv_user = json_data["recv_user"]
                 send_user = json_data["send_user"]
                 if json_data["message_type"] != "file-data":
-                    s.sendto(data, user[recv_user])  # 发送data和address到客户端
+                    symmetric_cipher_decode = SymmetricCipher(user_key[send_user])
+                    symmetric_cipher_encode = SymmetricCipher(user_key[recv_user])
+                    decrypted_content = symmetric_cipher_decode.decrypt(json_data["content"]).encode("utf-8")
+                    json_data["content"] = symmetric_cipher_encode.encrypt(decrypted_content).encode("utf-8")
+                    s.sendto(json_data, user[recv_user])  # 发送data和address到客户端
 
                 else:
                     filename = json_data["file_name"]
@@ -150,12 +196,12 @@ def main():
                         time.sleep(0.0000000001)  # 防止数据发送太快，服务器来不及接收出错
                         if 1024 * (i + 1) > len(data_total):  # 是否到最后
                             s.sendto(
-                                data_total[1024 * i :], user[recv_user]
+                                data_total[1024 * i:], user[recv_user]
                             )  # 最后一次剩下的数据传给对方
                             print("第" + str(i + 1) + "次发送文件数据")
                         else:
                             s.sendto(
-                                data_total[1024 * i : 1024 * (i + 1)], user[recv_user]
+                                data_total[1024 * i: 1024 * (i + 1)], user[recv_user]
                             )
                             print("第" + str(i + 1) + "次发送文件数据")
 
