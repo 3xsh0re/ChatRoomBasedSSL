@@ -66,8 +66,18 @@ class SymmetricCipher:
 
 
 class ChatClient:
-    # 生成的共享密钥
-    shared_secret = ""
+    def expand_string_to_bytes(self,string):
+        expanded_bits = ""
+        for char in string:
+            hex_value = int(char, 16)
+            binary_value = format(hex_value, '04b')
+            expanded_bits += binary_value
+        expanded_bits += "0" * (256 - len(expanded_bits))
+        bytes_array = []
+        for i in range(0, 256, 8):
+            byte = int(expanded_bits[i:i + 8], 2)
+            bytes_array.append(byte)
+        return bytes(bytes_array)
 
     def client_perform_ssl_handshake(self, name, passwd):
         client = SSL.Client(name, passwd)
@@ -103,11 +113,11 @@ class ChatClient:
                 sock.sendto(crt_data.encode("utf-8"), server)
                 print(f"\033[32m[+]\033[0m{name}客户端证书发送完成!")
 
-            shared_secret = client.process_server_hello(server_hello)
-            message = {"shared_secret": shared_secret}
+            self.symmetric_key = self.expand_string_to_bytes(client.process_server_hello(server_hello))
+            message = {"shared_secret": str(self.symmetric_key)}
             jsondata = json.dumps(message, ensure_ascii=False)
             sock.sendto(jsondata.encode("utf-8"), server)
-            print("\033[32m[+]\033[0mRSA加密后的共享密钥:", shared_secret)
+            print("\033[32m[+]\033[0mRSA加密后的共享密钥:", self.symmetric_key)
         else:
             sock.sendto("NOT_PASS_VERIFY".encode("utf-8"), server)
             print(f"\033[32m[-]\033[0m本次连接请求结束")
@@ -125,13 +135,13 @@ class ChatClient:
         self.fri_list = fri_list
         self.obj_emoji = obj_emoji
         # 新加的
-        self.symmetric_key = self.shared_secret
         self.symmetric_cipher = SymmetricCipher(self.symmetric_key)
 
     def toSend(self, *args):
         self.msg = self.scr2.get(1.0, "end").strip()
 
         # /新加的
+        print(self.symmetric_key)
         plaintext = self.msg.encode("utf-8")  # 将 Unicode 字符串转换为字节序列
         encrypted_msg = self.symmetric_cipher.encrypt(plaintext)
         print("encrypted_msg:", encrypted_msg)

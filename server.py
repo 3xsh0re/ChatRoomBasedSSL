@@ -15,6 +15,7 @@ def main():
     print("----------服务器已启动-----------")
     print("Bind UDP on " + str(s_addr))
     print("等待客户端数据...")
+    server = SSL.Server()
 
     while True:
         try:
@@ -22,7 +23,6 @@ def main():
             json_data = json.loads(data.decode("utf-8"))
 
             if "client_hello" in json_data:  # 接收SSL握手请求
-                server = SSL.Server()
                 json_data = json.loads(data.decode("utf-8"))
                 client_name = json_data["client_hello"]
                 server_hello = server.respond_to_client_hello(client_name)
@@ -53,6 +53,7 @@ def main():
                     # 验证证书
                     if server.verify_client_certificate(client_name):
                         # 接收密钥
+                        print(f"\033[32m[+]\033[0m正在等待客户端传输密钥")
                         while True:
                             data, addr = s.recvfrom(1024)  # 等待接收客户端消息存放在2个变量data和addr里
                             json_data = json.loads(data.decode("utf-8"))
