@@ -37,7 +37,7 @@ class SymmetricCipher:
         # 使用 PKCS7 反填充
         unpadder = padding.PKCS7(128).unpadder()
         padded_data = (
-                decryptor.update(b64decode(ciphertext)[16:]) + decryptor.finalize()
+            decryptor.update(b64decode(ciphertext)[16:]) + decryptor.finalize()
         )
         plaintext = unpadder.update(padded_data) + unpadder.finalize()
 
@@ -76,48 +76,43 @@ def main():
 
                 # 向客户端发送证书
                 with open(f"./Server_req.crt", "r") as file:
-                    crt_data = str(file.read())
-                    s.sendto(crt_data.encode("utf-8"), addr)
+                    Server_crt_data = str(file.read())
+                    s.sendto(Server_crt_data.encode("utf-8"), addr)
                     print("\033[32m[+]\033[0m服务端证书发送完成!")
 
                 # 接收客户端证书
                 while True:
                     data, addr = s.recvfrom(4096)
-                    crt_data = data.decode("utf-8")
-                    if len(crt_data) != 0:
+                    client_crt_data = data
+                    if len(client_crt_data) != 0:
                         break
-                if "NOT_PASS_VERIFY" in crt_data:
-                    print(f"\033[31m[-]\033[0m没有通过客户端验证,本次连接请求结束")
-                else:
-                    with open(
-                        "Server_req.key", "r"
-                    ) as Server_req_key:  # 用服务器私钥解密客户端发送的证书
-                        serveer_private_key_str = str(Server_req_key.read())
-                        crt_data = SSL.decrypt_message(
-                            crt_data, serveer_private_key_str, "USTBServer"
-                        )
-                    with open(f"{client_name}_req.crt", "w") as csr_file:
-                        csr_file.write(crt_data)
-                    print(f"\033[32m[+]\033[0m客户端证书接收成功")
-                    # 验证证书
-                    if server.verify_client_certificate(client_name):
-                        # 接收密钥
-                        print(f"\033[32m[+]\033[0m正在等待客户端传输密钥")
-                        while True:
-                            data, addr = s.recvfrom(1024)  # 等待接收客户端消息存放在2个变量data和addr里
-                            key = data.decode("utf-8")
-                            if len(json_data) != 0:
-                                break
-                        # 下面为本次客户端的共享密钥
-                        with open(
-                            "Server_req.key", "r"
-                        ) as Server_req_key:  # 用服务器私钥解密客户端发送的共享密钥
-                            serveer_private_key_str = str(Server_req_key.read())
-                            shared_secret_enc = SSL.decrypt_message(
-                                json_data["shared_secret"],
-                                serveer_private_key_str,
-                                "USTBServer",
-                            )
+                print(f"\033[32m[+]\033[0m客户端证书接收成功")
+                with open("Server_req.key", "r") as Server_req_key:  # 用服务器私钥解密客户端发送的证书
+                    server_private_key_str = Server_req_key.read()
+                    client_crt_data_decode = SSL.decrypt_message(
+                        client_crt_data,
+                        str(server_private_key_str),
+                        "USTBServer",
+                    ).decode("utf-8")
+                with open(f"{client_name}_req.crt", "w") as csr_file:
+                    csr_file.write(client_crt_data_decode)
+                # 验证证书
+                if server.verify_client_certificate(client_name):
+                    print("\033[32m[+]\033[0m客户端证书验证通过")
+                    # 接收密钥
+                    print(f"\033[32m[+]\033[0m正在等待客户端传输密钥")
+                    while True:
+                        data, addr = s.recvfrom(10024)  # 等待接收客户端消息存放在2个变量data和addr里
+                        shared_secret = data
+                        if len(shared_secret) != 0:
+                            break
+                    # 下面为本次客户端的共享密钥
+                    shared_secret_decrypt = SSL.decrypt_message(
+                        shared_secret,
+                        server_private_key_str,
+                        "USTBServer",
+                    )
+                    print("共享密钥:", shared_secret_decrypt)
 
             # 下面都是普通消息处理分支
 
@@ -146,6 +141,7 @@ def main():
 
             elif json_data["chat_type"] == "normal":
                 if json_data["message_type"] != "file":
+                    print("群发消息:", data)
                     for address in user.values():
                         if address != addr:
                             s.sendto(data, address)  # 发送data和address到客户端
@@ -156,8 +152,12 @@ def main():
                 if json_data["message_type"] != "file-data":
                     symmetric_cipher_decode = SymmetricCipher(user_key[send_user])
                     symmetric_cipher_encode = SymmetricCipher(user_key[recv_user])
-                    decrypted_content = symmetric_cipher_decode.decrypt(json_data["content"]).encode("utf-8")
-                    json_data["content"] = symmetric_cipher_encode.encrypt(decrypted_content).encode("utf-8")
+                    decrypted_content = symmetric_cipher_decode.decrypt(
+                        json_data["content"]
+                    ).encode("utf-8")
+                    json_data["content"] = symmetric_cipher_encode.encrypt(
+                        decrypted_content
+                    ).encode("utf-8")
                     s.sendto(json_data, user[recv_user])  # 发送data和address到客户端
 
                 else:
@@ -196,12 +196,12 @@ def main():
                         time.sleep(0.0000000001)  # 防止数据发送太快，服务器来不及接收出错
                         if 1024 * (i + 1) > len(data_total):  # 是否到最后
                             s.sendto(
-                                data_total[1024 * i:], user[recv_user]
+                                data_total[1024 * i :], user[recv_user]
                             )  # 最后一次剩下的数据传给对方
                             print("第" + str(i + 1) + "次发送文件数据")
                         else:
                             s.sendto(
-                                data_total[1024 * i: 1024 * (i + 1)], user[recv_user]
+                                data_total[1024 * i : 1024 * (i + 1)], user[recv_user]
                             )
                             print("第" + str(i + 1) + "次发送文件数据")
 
