@@ -85,9 +85,8 @@ class ChatClient:
 
         with open(f"./{name}_req.crt", "r") as file:
             crt_data = str(file.read())
-            message = {"req_crt": crt_data}
-            jsondata = json.dumps(message, ensure_ascii=False)
-            sock.sendto(jsondata.encode("utf-8"), server)
+            print(message)
+            sock.sendto(crt_data.encode("utf-8"), server)
             print(f"\033[32m[+]\033[0m{name}_req.crt发送完成!")
 
         shared_secret = client.process_server_hello(server_hello)

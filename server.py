@@ -32,12 +32,12 @@ def main():
                 s.sendto(hello_json.encode("utf-8"), addr)
 
                 while True:
-                    data, addr = s.recvfrom(1024)  # 等待接收客户端消息存放在2个变量data和addr里
-                    json_data = json.loads(data.decode("utf-8"))
+                    data, addr = s.recvfrom()  # 等待接收客户端消息存放在2个变量data和addr里
+                    json_data = data.decode("utf-8")
                     print(json_data)
                     if len(json_data) != 0:
                         break
-                crt_data = json_data["req_crt"]
+                crt_data = json_data
                 with open(f"{client_name}_req.crt", "w") as csr_file:
                     csr_file.write(crt_data)
 
