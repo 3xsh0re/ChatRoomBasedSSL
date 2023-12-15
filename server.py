@@ -89,6 +89,13 @@ def main():
                 if "NOT_PASS_VERIFY" in crt_data:
                     print(f"\033[31m[-]\033[0m没有通过客户端验证,本次连接请求结束")
                 else:
+                    with open(
+                        "Server_req.key", "r"
+                    ) as Server_req_key:  # 用服务器私钥解密客户端发送的证书
+                        serveer_private_key_str = str(Server_req_key.read())
+                        crt_data = SSL.decrypt_message(
+                            crt_data, serveer_private_key_str, "USTBServer"
+                        )
                     with open(f"{client_name}_req.crt", "w") as csr_file:
                         csr_file.write(crt_data)
                     print(f"\033[32m[+]\033[0m客户端证书接收成功")
@@ -102,9 +109,15 @@ def main():
                             if len(json_data) != 0:
                                 break
                         # 下面为本次客户端的共享密钥
-                        user_key[client_name] = key
-                        # RSA解出密钥,等待实现
-
+                        with open(
+                            "Server_req.key", "r"
+                        ) as Server_req_key:  # 用服务器私钥解密客户端发送的共享密钥
+                            serveer_private_key_str = str(Server_req_key.read())
+                            shared_secret_enc = SSL.decrypt_message(
+                                json_data["shared_secret"],
+                                serveer_private_key_str,
+                                "USTBServer",
+                            )
 
             # 下面都是普通消息处理分支
 

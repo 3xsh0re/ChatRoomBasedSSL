@@ -1,8 +1,49 @@
 import hashlib
-import random
-import secrets
 import CA
+from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+from cryptography.x509 import load_pem_x509_certificate
+
+
+def encrypt_message(message, public_key_str):
+    # 加载公钥和私钥
+    public_key = load_pem_x509_certificate(
+        public_key_str.encode(), default_backend()
+    ).public_key()
+    # 使用公钥加密
+    ciphertext = public_key.encrypt(
+        message.encode(),
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None,
+        ),
+    )
+    return ciphertext
+
+
+def decrypt_message(ciphertext, private_key_str, private_key_password):
+    private_key = load_pem_private_key(
+        private_key_str.encode(),
+        private_key_password.encode(),  # 添加密码信息
+        default_backend(),
+    )
+    # 使用私钥解密
+    decrypted_message = private_key.decrypt(
+        ciphertext,
+        padding.OAEP(
+            mgf=padding.MGF1(algorithm=hashes.SHA256()),
+            algorithm=hashes.SHA256(),
+            label=None,
+        ),
+    )
+    return decrypted_message
+
+
+# 测试
+# encrypt_and_decrypt("喵喵喵，测试一下加解密喵~", public_key_str, private_key_str, "123456")
 
 
 # 模拟服务器和客户端
@@ -16,7 +57,7 @@ class Server:
 
     def respond_to_client_hello(self, client_hello):
         # 模拟服务器响应客户端的Hello消息
-        server_hello = "ServerHello"
+        server_hello = "Hello, " + str(client_hello) + ", I'm server."
         print("\033[32m[SSL]\033[0m服务器响应客户端的Hello消息")
         return server_hello
 
@@ -33,7 +74,6 @@ class Server:
 
 class Client:
     def __init__(self, username, passwd):
-        self.pre_master_secret = str(random.randint(1, 1000))
         self.generate_certificate(username, passwd)
 
     def generate_certificate(self, username, passwd):
@@ -49,16 +89,8 @@ class Client:
 
     def process_server_hello(self, server_hello):
         # 客户端处理服务器的Hello消息
-        # shared_secret = hashlib.sha256(self.pre_master_secret.encode()).hexdigest()
-        # shared_secret = secrets.token_bytes(32)
-        # 生成一个256位的随机字节串
-        random_bytes = secrets.token_bytes(32)
-
-        # 使用哈希函数将字节串转换为密钥
-        # key = hashes.Hash(hashes.SHA256())
-        # key.update(random_bytes)
-        # generated_key = key.finalize()
-        return random_bytes
+        shared_secret = hashlib.sha256(server_hello.encode()).hexdigest()
+        return shared_secret
 
     def verify_server_certificate(self):
         # 客户端验证服务器的证书
