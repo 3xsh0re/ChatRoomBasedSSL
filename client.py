@@ -1,7 +1,6 @@
 # 客户端
 import socket
 import threading
-import time
 import SSL
 from tkinter import scrolledtext
 from tkinter.filedialog import askopenfilename
@@ -47,6 +46,9 @@ class SymmetricCipher:
         # 从密文中提取 IV
         iv = b64decode(ciphertext)[:16]
 
+        # 使用 PKCS7 反填充
+        unpadder = padding.PKCS7(128).unpadder()
+
         cipher = Cipher(
             algorithms.AES(self.key), modes.CFB8(iv), backend=default_backend()
         )
@@ -54,9 +56,6 @@ class SymmetricCipher:
         padded_data = (
                 decryptor.update(b64decode(ciphertext)[16:]) + decryptor.finalize()
         )
-
-        # 使用 PKCS7 反填充
-        unpadder = padding.PKCS7(128).unpadder()
         plaintext = unpadder.update(padded_data) + unpadder.finalize()
 
         return plaintext.decode("utf-8")
@@ -66,19 +65,6 @@ class SymmetricCipher:
 
 
 class ChatClient:
-    def expand_string_to_bytes(self,string):
-        expanded_bits = ""
-        for char in string:
-            hex_value = int(char, 16)
-            binary_value = format(hex_value, '04b')
-            expanded_bits += binary_value
-        expanded_bits += "0" * (256 - len(expanded_bits))
-        bytes_array = []
-        for i in range(0, 256, 8):
-            byte = int(expanded_bits[i:i + 8], 2)
-            bytes_array.append(byte)
-        return bytes(bytes_array)
-
     def client_perform_ssl_handshake(self, name, passwd):
         client = SSL.Client(name, passwd)
         client_hello = client.send_client_hello(name)
@@ -113,16 +99,15 @@ class ChatClient:
                 sock.sendto(crt_data.encode("utf-8"), server)
                 print(f"\033[32m[+]\033[0m{name}客户端证书发送完成!")
 
-            self.symmetric_key = self.expand_string_to_bytes(client.process_server_hello(server_hello))
-            message = {"shared_secret": str(self.symmetric_key)}
-            jsondata = json.dumps(message, ensure_ascii=False)
-            sock.sendto(jsondata.encode("utf-8"), server)
+            self.symmetric_key = client.process_server_hello(server_hello)
+            sock.sendto(self.symmetric_key, server)
             print("\033[32m[+]\033[0mRSA加密后的共享密钥:", self.symmetric_key)
         else:
             sock.sendto("NOT_PASS_VERIFY".encode("utf-8"), server)
             print(f"\033[32m[-]\033[0m本次连接请求结束")
 
     def __init__(self, name, scr1, scr2, fri_list, obj_emoji):
+        self.symmetric_key = None
         conn = sqlite3.connect("yonghu.db")
         cursor = conn.cursor()
         cursor.execute("SELECT password FROM user WHERE username=?", (name,))
@@ -161,9 +146,8 @@ class ChatClient:
 
     def toPrivateSend(self, *args):
         self.msg = self.scr2.get(1.0, "end").strip()
-
-        # /新加的
-        encrypted_msg = self.symmetric_cipher.encrypt(self.msg)
+        plaintext = self.msg.encode("utf-8")  # 将 Unicode 字符串转换为字节序列
+        encrypted_msg = self.symmetric_cipher.encrypt(plaintext)
         # 新加的/
         self.scr2.delete("1.0", "end")
         # /新加的
@@ -313,6 +297,8 @@ class ChatClient:
 
             elif json_data["chat_type"] == "normal":
                 if json_data["message_type"] == "text":
+                    print(json_data["content"])
+                    print(self.symmetric_key)
                     decrypted_content = self.symmetric_cipher.decrypt(
                         json_data["content"]
                     )
@@ -346,7 +332,9 @@ class ChatClient:
                         "{} {}:\n".format(json_data["send_user"], now_time),
                         "green",
                     )
-                    self.scr1.insert("end", json_data["content"])
+                    # 对收到的消息解码
+                    plain_text = self.symmetric_cipher.decrypt(json_data["content"].encode("utf-8"))
+                    self.scr1.insert("end", plain_text)
                     self.scr1.insert("end", f"  |私聊消息\n", "zise")
                     print(f'[私聊]收到{json_data["send_user"]}的消息：', json_data["content"])
 

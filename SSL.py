@@ -1,6 +1,8 @@
 import hashlib
 import random
+import secrets
 import CA
+from cryptography.hazmat.primitives import hashes
 
 
 # 模拟服务器和客户端
@@ -47,8 +49,16 @@ class Client:
 
     def process_server_hello(self, server_hello):
         # 客户端处理服务器的Hello消息
-        shared_secret = hashlib.sha256(self.pre_master_secret.encode()).hexdigest()
-        return shared_secret
+        # shared_secret = hashlib.sha256(self.pre_master_secret.encode()).hexdigest()
+        # shared_secret = secrets.token_bytes(32)
+        # 生成一个256位的随机字节串
+        random_bytes = secrets.token_bytes(32)
+
+        # 使用哈希函数将字节串转换为密钥
+        # key = hashes.Hash(hashes.SHA256())
+        # key.update(random_bytes)
+        # generated_key = key.finalize()
+        return random_bytes
 
     def verify_server_certificate(self):
         # 客户端验证服务器的证书
