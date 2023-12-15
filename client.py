@@ -52,7 +52,7 @@ class SymmetricCipher:
         )
         decryptor = cipher.decryptor()
         padded_data = (
-                decryptor.update(b64decode(ciphertext)[16:]) + decryptor.finalize()
+            decryptor.update(b64decode(ciphertext)[16:]) + decryptor.finalize()
         )
 
         # 使用 PKCS7 反填充
@@ -66,16 +66,16 @@ class SymmetricCipher:
 
 
 class ChatClient:
-    def expand_string_to_bytes(self,string):
+    def expand_string_to_bytes(self, string):
         expanded_bits = ""
         for char in string:
             hex_value = int(char, 16)
-            binary_value = format(hex_value, '04b')
+            binary_value = format(hex_value, "04b")
             expanded_bits += binary_value
         expanded_bits += "0" * (256 - len(expanded_bits))
         bytes_array = []
         for i in range(0, 256, 8):
-            byte = int(expanded_bits[i:i + 8], 2)
+            byte = int(expanded_bits[i : i + 8], 2)
             bytes_array.append(byte)
         return bytes(bytes_array)
 
@@ -100,20 +100,22 @@ class ChatClient:
         # 验证服务端证书
         while True:
             data, addr = sock.recvfrom(4096)
-            crt_data = data.decode("utf-8")
-            if len(crt_data) != 0:
+            server_crt_data = data.decode("utf-8")
+            if len(server_crt_data) != 0:
                 break
         with open("Server_req.crt", "w") as csr_file:
-            csr_file.write(crt_data)
+            csr_file.write(server_crt_data)
 
         # 验证服务端证书
         if client.verify_server_certificate():
             with open(f"./{name}_req.crt", "r") as file:
-                crt_data = str(file.read())
-                sock.sendto(crt_data.encode("utf-8"), server)
+                client_crt_data = SSL.encrypt_message(str(file.read()), server_crt_data)
+                sock.sendto(client_crt_data.encode("utf-8"), server)
                 print(f"\033[32m[+]\033[0m{name}客户端证书发送完成!")
 
-            self.symmetric_key = self.expand_string_to_bytes(client.process_server_hello(server_hello))
+            self.symmetric_key = self.expand_string_to_bytes(
+                client.process_server_hello(server_hello)
+            )
             message = {"shared_secret": str(self.symmetric_key)}
             jsondata = json.dumps(message, ensure_ascii=False)
             sock.sendto(jsondata.encode("utf-8"), server)
@@ -210,10 +212,10 @@ class ChatClient:
         for i in range(fhead // 1024 + 1):
             time.sleep(0.0000000001)  # 防止数据发送太快，服务器来不及接收出错
             if 1024 * (i + 1) > fhead:  # 是否到最后
-                sock.sendto(data[1024 * i:], server)  # 最后一次剩下的数据传给对方
+                sock.sendto(data[1024 * i :], server)  # 最后一次剩下的数据传给对方
                 print("第" + str(i + 1) + "次发送文件数据")
             else:
-                sock.sendto(data[1024 * i: 1024 * (i + 1)], server)
+                sock.sendto(data[1024 * i : 1024 * (i + 1)], server)
                 print("第" + str(i + 1) + "次发送文件数据")
 
     def succ_recv(self, filename, sourcename):
@@ -290,8 +292,8 @@ class ChatClient:
                 user_list = eval(json_data["online_user"])
                 for user in user_list:
                     if (
-                            str(user) not in self.fri_list.get_children()
-                            and str(user) != self.name
+                        str(user) not in self.fri_list.get_children()
+                        and str(user) != self.name
                     ):  # 如果不在列表中
                         self.fri_list.insert(
                             "",

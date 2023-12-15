@@ -63,7 +63,6 @@ def main():
                         shared_secret_enc = json_data["shared_secret"]
                         # RSA解出密钥,等待实现
 
-
             # 下面都是普通消息处理分支
 
             elif json_data["message_type"] == "init_message":
