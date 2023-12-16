@@ -17,7 +17,7 @@ from need_module import sys
 class Register(object):
     def __init__(self, Login,Chat,master=None):
         self.root = master  # 定义内部变量root
-        self.root.title('注册窗口')
+        self.root.title('注册')
         self.Login=Login
         self.Chat=Chat
         #new
@@ -43,32 +43,25 @@ class Register(object):
         sw = self.root.winfo_screenwidth()  # 计算水平距离
         sh = self.root.winfo_screenheight()  # 计算垂直距离
         w = 690  # 宽
-        h = 520  # 高
+        h = 505  # 高
         x = (sw - w) / 2
         y = (sh - h) / 2
         self.root.geometry("%dx%d+%d+%d" % (w, h, (x + 160), y))
         self.root.iconbitmap(r'images/icon/register.ico')  # 设置左上角窗口图标
         self.root.resizable(0, 0)  # 窗口设置为不可放大缩小
-        # # 告诉操作系统使用程序自身的dpi适配
-        # ctypes.windll.shcore.SetProcessDpiAwareness(1)
-        # # 获取屏幕的缩放因子
-        # ScaleFactor = ctypes.windll.shcore.GetScaleFactorForDevice(0)
-        # # 设置程序缩放
-        # self.root.tk.call('tk', 'scaling', ScaleFactor / 75)
         self.creatregister()
 
     def creatregister(self):
         self.fr2 = Frame(self.root)
-        self.fr2.pack()
+        self.fr2.place(x=0, y=0, width=690, height=400)
         self.fr1 = Frame(self.root)
-        self.fr1.pack(pady=10)
+        self.fr1.place(x=240, y=300, width=400, height=210)
 
-        self.benner_list = ['images/benner/banner-1.jpg', 'images/benner/banner-2.jpg', 'images/benner/banner-3.jpg',
-                            'images/benner/banner-4.jpg', 'images/benner/banner-5.jpg', 'images/benner/banner-6.jpg', ]
-        self.benner_img = random.choice(self.benner_list)  # 随机一张背景图
+
+        self.benner_img = 'images/benner/bg.png'
 
         # 图片大小：690x300
-        self.pic = Image.open(self.benner_img)
+        self.pic = Image.open(self.benner_img).resize((690, 400))
         self.register_benner = ImageTk.PhotoImage(self.pic)
 
         # 标签 图片
@@ -76,16 +69,16 @@ class Register(object):
         self.imgLabel.pack()
 
         # 标签 用户和密码
-        self.label_usr = Label(self.fr1, text="用户名：")
+        self.label_usr = Label(self.fr1, text="用户名：", font=("宋体", 11))
         self.label_usr.grid(row=0, column=0)
-        self.label_pwd = Label(self.fr1, text="密  码：")
+        self.label_pwd = Label(self.fr1, text="密  码：", font=("宋体", 11))
         self.label_pwd.grid(row=1, column=0, pady=5)
-        self.label_repwd = Label(self.fr1, text="确认密码：")
+        self.label_repwd = Label(self.fr1, text="确认密码：", font=("宋体", 11))
         self.label_repwd.grid(row=2, column=0)
 
         # 文本框 用户名
         self.var_usr_name = StringVar()
-        self.entry_name = Entry(self.fr1, textvariable=self.var_usr_name)
+        self.entry_name = Entry(self.fr1, textvariable=self.var_usr_name, font=("宋体", 11))
         self.entry_name.grid(row=0, column=1)
         self.entry_name.focus_set()  # 获得焦点
         self.docheck1 = self.entry_name.register(self.usercheck)  # 自带验证功能，usercheck自定义函数
@@ -93,27 +86,23 @@ class Register(object):
 
         # 文本框 密码
         self.var_usr_pwd = StringVar()
-        self.entry_pwd = Entry(self.fr1, textvariable=self.var_usr_pwd, show="*", validate="focusout")
+        self.entry_pwd = Entry(self.fr1, textvariable=self.var_usr_pwd, show="*", font=("宋体", 11))
         self.entry_pwd.grid(row=1, column=1)
         self.docheck2 = self.entry_pwd.register(self.passwordcheck)
-        self.entry_pwd.config(validate='focusout', validatecommand=(self.docheck2, '%P'))
-
+        self.entry_pwd.config(validate='all', validatecommand=(self.docheck2, '%d', '%S'))
         # 文本框 确认密码
         self.var_usr_repwd = StringVar()
-        self.entry_repwd = Entry(self.fr1, textvariable=self.var_usr_repwd, show="*", validate="focusout")
+        self.entry_repwd = Entry(self.fr1, textvariable=self.var_usr_repwd, show="*", font=("宋体", 11))
         self.entry_repwd.grid(row=2, column=1)
-        self.docheck3 = self.entry_repwd.register(self.passwordcheck)
-        self.entry_repwd.config(validate='focusout', validatecommand=(self.docheck3, '%P'))
 
         self.fr3 = Frame(self.root)
-        self.fr3.pack()
+        self.fr3.place(x=252, y=400, width=400, height=210)
         # 登录
         self.root.bind('<Return>', self.reg)  # 绑定回车键
-        self.bt_register = Button(self.fr3, text=" 注册 ", command=lambda: self.reg())
-        self.bt_register.grid(row=1, column=1, pady=5, padx=35)
-        # self.la = Label(self.fr3, width=5)
-        # self.la.grid(row=0, column=0)
-        self.bt_quit = Button(self.fr3, text=" 退出 ", command=sys.exit)
+        self.bt_register = Button(self.fr3, text=" 注册 ", command=lambda: self.reg(), font=("楷体", 11))
+        self.bt_register.grid(row=1, column=1, pady=5, padx=50)
+
+        self.bt_quit = Button(self.fr3, text=" 退出 ", command=sys.exit, font=("楷体", 11))
         self.bt_quit.grid(row=1, column=2)
 
         # # 底部标签
@@ -124,8 +113,6 @@ class Register(object):
         self.bt_register.pack(side='left', anchor='s')
         self.la2 = Label(self.fr4, width=150)
         self.la2.pack()
-        self.tsLabel2 = Label(self.fr4, text="用户注册界面 by LGH ", fg="red")
-        self.tsLabel2.pack(side='right', anchor='s', pady=5)
 
     def register_win_close(self):
         self.fr1.destroy()

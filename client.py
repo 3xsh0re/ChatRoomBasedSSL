@@ -8,6 +8,7 @@ from tkinter.ttk import Treeview
 from stickers import *
 from login import *
 from register import *
+from tkinter import ttk
 
 #  ->新加的
 from cryptography.hazmat.primitives import padding
@@ -399,75 +400,57 @@ class ChatUI():
         r = askopenfilename(title='打开文件', filetypes=[('All File', '*.*'), ('文本文件', '.txt'), ('python', '*.py *.pyw')])
         self.scr2.insert(INSERT, r)
 
-    def chat(self, usename):
-        self.name = usename
-        self.root.title('聊天室--用户名:' + self.name)
+    def chat(self, username):
+        self.name = username
+        self.root.title('Chatroom')
         sw = self.root.winfo_screenwidth()  # 计算水平距离
         sh = self.root.winfo_screenheight()  # 计算垂直距离
-        w = 1120  # 宽
-        h = 720  # 高
+        w = 1000  # 宽
+        h = 660  # 高
         x = (sw - w) / 2
         y = (sh - h) / 2
         self.root.geometry("%dx%d+%d+%d" % (w, h, (x + 160), y))
         self.root.iconbitmap(r'images/icon/chat.ico')  # 设置左上角窗口图标
 
         self.root.resizable(0, 0)  # 窗口设置为不可放大缩小
-        # 告诉操作系统使用程序自身的dpi适配
-        ctypes.windll.shcore.SetProcessDpiAwareness(1)
-        # 获取屏幕的缩放因子
-        ScaleFactor = ctypes.windll.shcore.GetScaleFactorForDevice(0)
-        # 设置程序缩放
-        self.root.tk.call('tk', 'scaling', ScaleFactor / 75)
 
-        self.root.resizable(1, 1)  # 窗口设置为不可放大缩小
-        self.scr1 = scrolledtext.ScrolledText(self.root, height=18, font=('黑体', 13))
+        LabelFrame(self.root).place(x=80, y=30, width=w - 160, height=2)
+        self.scr1 = scrolledtext.ScrolledText(self.root, height=18, font=('黑体', 13), bd=4, relief=SUNKEN)
         self.scr1.tag_config('green', foreground='#008C00', font=('微软雅黑', 10))  # 设置组件字体颜色
         self.scr1.tag_config('red', foreground='red')
         self.scr1.tag_config('zise', foreground='#aaaaff')
         self.scr1.tag_config('shengzise', foreground='#9d4cff')
         self.scr1.tag_config('chengse', foreground='#ff7f27')
-
+        self.scr1.place(x=30, y=60)
+        LabelFrame(self.root).place(x=80, y=410, width=w - 470, height=2)
         # 创建树形列表
-        self.fri_list = Treeview(self.root, height=30, show="tree")
-        self.fri_list.insert('', 0, 'online_user', text='在线用户'.center(10, '-'), values=("1"), tags='在线用户')
+        self.fri_list = Treeview(self.root, height=25, show="tree", style="mystyle.Treeview")
+        # 创建样式对象
+        style = ttk.Style()
+        style.configure("mystyle.Treeview", rowheight=30)  # 设置行高
+        # 应用样式到Treeview的列上
+        self.fri_list["style"] = "mystyle.Treeview"
+        self.fri_list.insert('', 0, 'online_user', text='在线用户'.center(8, '-'), values=("1"), tags='在线用户')
         if self.name not in self.fri_list.get_children():  # 如果不在列表中
-            self.fri_list.insert('', 1, 'me', text=self.name.center(24), values=("1"), tags='自己')  # 自己在列表中颜色为红色
-        self.fri_list.grid(row=1, column=2, rowspan=7, sticky=N)
-        self.fri_list.tag_configure('在线用户', foreground='#aa5500', font=('黑体', 13))  # 设置组件字体颜色
-        self.fri_list.tag_configure('自己', foreground='red', font=('微软雅黑', 10))  # 设置组件字体颜色
+            self.fri_list.insert('', 1, 'me', text=self.name.center(20), values=("1"), tags='自己')  # 自己在列表中颜色为红色
+        self.fri_list.place(x=810, y=60, width=150, height=565)
+        self.fri_list.column('#0', width=100)
+        self.fri_list.tag_configure('在线用户', foreground='#3366CC', font=('黑体', 13))  # 设置组件字体颜色
+        self.fri_list.tag_configure('自己', foreground='red', font=('微软雅黑', 12))  # 设置组件字体颜色
         self.fri_list.tag_configure('其他用户', font=('微软雅黑', 10))  # 设置组件字体颜色
 
-        self.scr1.grid(row=1, column=1)
-        l0 = Label(self.root, text='')
-        l0.grid(row=2)
-        l1 = Label(self.root, text='下框输入你要的发送的内容：')
-        l1.grid(row=3, column=1)
-        self.scr2 = scrolledtext.ScrolledText(self.root, height=6, font=('黑体', 13))
-        self.scr2.grid(row=4, column=1)
-        l2 = Label(self.root, text='')
-        l2.grid(row=5)
-        tf = Frame(self.root)
-        tf.grid(row=6, column=1)
+        self.scr2 = scrolledtext.ScrolledText(self.root, height=5, font=('黑体', 13), bd=4, relief=SUNKEN)
+        self.scr2.place(x=30, y=445, width=666,height=180)
 
         obj_emoji = Emoji(self.root, self.send_mark)
         chat = ChatClient(self.name, self.scr1, self.scr2, self.fri_list, obj_emoji)
 
-        b0 = Button(tf, text=' 表情包 ', command=obj_emoji.express)
-        b0.grid(row=1, column=0, padx=20)
-        b1 = Button(tf, text=' 群发 ', command=chat.toSend)
-        b1.grid(row=1, column=1, padx=20)
-        b4 = Button(tf, text=' 私聊 ', command=chat.toPrivateSend)
-        b4.grid(row=1, column=2, padx=20)
-        b2 = Button(tf, text=' 传文件 ', command=self.openfile)
-        b2.grid(row=1, column=3, padx=20, pady=20)
-        b3 = Button(tf, text=' 发邮件 ', command='')
-        b3.grid(row=1, column=4, padx=20)
-        b4 = Button(tf, text=' 开启FTP ', command='')
-        b4.grid(row=1, column=5, padx=20)
-        b5 = Button(tf, text=' 登录FTP ', command='')
-        b5.grid(row=1, column=6, padx=20)
-        b6 = Button(tf, text=' 退出 ', command=self.JieShu)
-        b6.grid(row=1, column=7, padx=20)
+        right_tf = Frame(self.root)
+        right_tf.place(x=694, y=445, width=85, height=200)
+        Button(right_tf, text=' 表情包 ', command=obj_emoji.express, width=10).pack(pady=7)
+        Button(right_tf, text=' 群发 ', command=chat.toSend, width=10).pack(pady=7)
+        Button(right_tf, text=' 私聊 ', command=chat.toPrivateSend, width=10).pack(pady=7)
+        Button(right_tf, text=' 退出 ', command=self.JieShu, width=10).pack(pady=7)
 
         tr = threading.Thread(target=chat.recv, args=(),
                               daemon=True)
