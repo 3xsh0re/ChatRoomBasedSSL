@@ -69,20 +69,22 @@ class Login(object):
         self.saved_msg()
 
         self.fr3 = Frame(self.root)
-        self.fr3.place(x=230, y=400, width=400, height=210)
+        self.fr3.place(x=230, y=370, width=400, height=210)
         self.rd_login = IntVar()
         self.rd_Passwd = IntVar()
+        self.checkboxPasswd = Checkbutton(self.fr3, text="记住密码", variable=self.rd_Passwd)
 
         self.la = Label(self.fr3, width=5)
         self.la.grid(row=0, column=0)
+        self.checkboxPasswd.grid(row=0, column=1)
         # 登录
         self.root.bind('<Return>', self.check_login)  # 绑定回车键
 
         self.bt_login = Button(self.fr3, text=" 登录 ", command=lambda: self.check_login(), font=("楷体", 12))
-        self.bt_login.grid(row=0, column=1, pady=5, padx=(10, 20))  # 增加水平间隔
+        self.bt_login.grid(row=1, column=1, pady=5, padx=(10, 20))  # 增加水平间隔
         
         self.bt_quit = Button(self.fr3, text=" 退出 ", command=sys.exit, font=("楷体", 12))
-        self.bt_quit.grid(row=0, column=2, padx=(20, 10))  # 增加水平间隔
+        self.bt_quit.grid(row=1, column=2, padx=(20, 10))  # 增加水平间隔
 
         # # 底部标签
         self.fr4 = Frame(self.root)
