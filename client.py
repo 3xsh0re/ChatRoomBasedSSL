@@ -91,6 +91,9 @@ class ChatClient:
             if len(server_crt_data) != 0:
                 break
 
+        with open("Server_req.crt", "w") as server_crt:
+            server_crt.write(server_crt_data)
+
         # 验证服务端证书
         if client.verify_server_certificate():
             with open(f"./{name}_req.crt", "r") as file:
