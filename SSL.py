@@ -13,14 +13,19 @@ def encrypt_message(message, public_key_str):
         public_key_str.encode(), default_backend()
     ).public_key()
     # 使用公钥加密
-    ciphertext = public_key.encrypt(
-        message.encode(),
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None,
-        ),
-    )
+    chunk_size = 128  # 适当的分块大小，具体值根据密钥长度而定
+    ciphertext = b""
+    for i in range(0, len(message), chunk_size):
+        chunk = message[i : i + chunk_size]
+        encrypted_chunk = public_key.encrypt(
+            chunk.encode(),
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None,
+            ),
+        )
+        ciphertext += encrypted_chunk
     return ciphertext
 
 
@@ -31,14 +36,20 @@ def decrypt_message(ciphertext, private_key_str, private_key_password):
         default_backend(),
     )
     # 使用私钥解密
-    decrypted_message = private_key.decrypt(
-        ciphertext,
-        padding.OAEP(
-            mgf=padding.MGF1(algorithm=hashes.SHA256()),
-            algorithm=hashes.SHA256(),
-            label=None,
-        ),
-    )
+    chunk_size = 256
+    decrypted_message = b""
+    # 使用私钥解密
+    for i in range(0, len(ciphertext), chunk_size):
+        chunk = ciphertext[i : i + chunk_size]
+        decrypted_chunk = private_key.decrypt(
+            chunk,
+            padding.OAEP(
+                mgf=padding.MGF1(algorithm=hashes.SHA256()),
+                algorithm=hashes.SHA256(),
+                label=None,
+            ),
+        )
+        decrypted_message += decrypted_chunk
     return decrypted_message
 
 

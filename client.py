@@ -8,6 +8,7 @@ from tkinter.ttk import Treeview
 from stickers import *
 from login import *
 from register import *
+import binascii
 
 #  ->新加的
 from cryptography.hazmat.primitives import padding
@@ -85,30 +86,28 @@ class ChatClient:
 
         # 验证服务端证书
         while True:
-            data, addr = sock.recvfrom(4096)
+            data, _ = sock.recvfrom(4096)
             server_crt_data = data.decode("utf-8")
             if len(server_crt_data) != 0:
                 break
-        with open("Server_req.crt", "w") as csr_file:
-            csr_file.write(server_crt_data)
 
         # 验证服务端证书
         if client.verify_server_certificate():
             with open(f"./{name}_req.crt", "r") as file:
-                client_crt_data = SSL.encrypt_message(str(file.read()), server_crt_data)
-            sock.sendto(client_crt_data.encode("utf-8"), server)  # 发送客户端证书，服务端公钥加密
-            print(f"\033[32m[+]\033[0m{name}客户端证书发送完成!")
-            self.symmetric_key = self.expand_string_to_bytes(
-                client.process_server_hello(server_hello)
+                client_crt_data = file.read()
+            client_crt_data_encrypt = SSL.encrypt_message(
+                client_crt_data, server_crt_data
             )
-            shared_secret = {
-                "shared_secret": SSL.encrypt_message(
-                    str(self.symmetric_key), server_crt_data
-                )
-            }
-            jsondata = json.dumps(shared_secret, ensure_ascii=False)
-            sock.sendto(jsondata.encode("utf-8"), server)  # 发送共享密钥，服务端公钥加密
-            print("\033[32m[+]\033[0mRSA加密后的共享密钥:", self.symmetric_key)
+            sock.sendto(client_crt_data_encrypt, server)  # 发送客户端证书，服务端公钥加密
+            print(f"\033[32m[+]\033[0m{name}客户端证书发送完成!")
+
+            shared_key = client.process_server_hello(server_hello)
+            print("\033[32m[+]\033[0m共享密钥:", shared_key)
+            self.symmetric_key = binascii.unhexlify(shared_key)
+            shared_secret_encrypt = SSL.encrypt_message(
+                str(shared_key), server_crt_data
+            )
+            sock.sendto(shared_secret_encrypt, server)  # 发送共享密钥，服务端公钥加密
         else:
             sock.sendto("NOT_PASS_VERIFY".encode("utf-8"), server)
             print(f"\033[32m[-]\033[0m本次连接请求结束")
@@ -340,7 +339,9 @@ class ChatClient:
                         "green",
                     )
                     # 对收到的消息解码
-                    plain_text = self.symmetric_cipher.decrypt(json_data["content"].encode("utf-8"))
+                    plain_text = self.symmetric_cipher.decrypt(
+                        json_data["content"].encode("utf-8")
+                    )
                     self.scr1.insert("end", plain_text)
                     self.scr1.insert("end", f"  |私聊消息\n", "zise")
                     print(f'[私聊]收到{json_data["send_user"]}的消息：', json_data["content"])
