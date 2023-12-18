@@ -157,10 +157,11 @@ def main():
                     decrypted_content = symmetric_cipher_decode.decrypt(
                         json_data["content"]
                     ).encode("utf-8")
-                    json_data["content"] = symmetric_cipher_encode.encrypt(
+                    json_data["content"] = str(symmetric_cipher_encode.encrypt(
                         decrypted_content
-                    ).encode("utf-8")
-                    s.sendto(json_data, user[recv_user])  # 发送data和address到客户端
+                    ))
+                    jsondata = json.dumps(json_data, ensure_ascii=False)
+                    s.sendto(jsondata.encode('utf-8'), user[recv_user])  # 发送data和address到客户端
 
                 else:
                     filename = json_data["file_name"]
