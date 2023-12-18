@@ -236,7 +236,7 @@ def Client_Verify():
             "verify",
             "-CAfile",
             "./rootCA.crt",
-            f"Server_req.crt",
+            "Server_req.crt",
         ]
         result = subprocess.run(verify_command, capture_output=True, text=True)
         if "OK" in result.stdout.strip():
@@ -244,6 +244,7 @@ def Client_Verify():
             gen_server_pk_command = [
                 "openssl x509 -in Server_req.crt -pubkey -noout > server_pk.pem"
             ]
+            # subprocess.run(gen_server_pk_command, capture_output=True, text=True)
             print("\033[32m[+]已经在当前文件夹下生成服务端公钥server_pk.pem!\033[0m")
             return 1
         else:
@@ -260,9 +261,9 @@ def Server_Request_Cert():
             "genrsa",
             "-des3",
             "-passout",
-            f"pass:USTBServer",
+            "pass:USTBServer",
             "-out",
-            f"Server_req.key",
+            "Server_req.key",
             "2048",
         ]
         subprocess.run(command, capture_output=True)
@@ -271,15 +272,10 @@ def Server_Request_Cert():
             f"/C=CN/ST=Beijing/L=Haidian/O=USTB_Server/OU=Server/CN=USTB_Server"
         )
         command2 = [
-            "openssl",
-            "req",
-            "-new",
-            "-key",
-            f"Server_req.key",
-            "-passin",
-            f"pass:USTBServer",
+            "openssl","req","-new","-key","Server_req.key","-passin",
+            "pass:USTBServer",
             "-out",
-            f"Server_req.csr",
+            "Server_req.csr",
             "-days",
             "365",
             "-subj",

@@ -16,7 +16,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from cryptography.hazmat.backends import default_backend
 from base64 import b64encode, b64decode
 import os
-
+key = b'\x00'*32
 """
 参数：
     sock：定义一个实例化socket对象
@@ -24,6 +24,7 @@ import os
 """
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # 使用udp传输方式
 server = ("47.93.254.31", 9999)
+
 
 
 class SymmetricCipher:
@@ -90,7 +91,8 @@ class ChatClient:
             server_crt_data = data.decode("utf-8")
             if len(server_crt_data) != 0:
                 break
-
+        with open(f"./{name}_req.crt", "r") as file:
+            client_crt_data = file.read()
         with open("Server_req.crt", "w") as server_crt:
             server_crt.write(server_crt_data)
 
@@ -129,7 +131,8 @@ class ChatClient:
         self.fri_list = fri_list
         self.obj_emoji = obj_emoji
         # 新加的
-        self.symmetric_cipher = SymmetricCipher(self.symmetric_key)
+        global key
+        self.symmetric_cipher = SymmetricCipher(key)
 
     def toSend(self, *args):
         self.msg = self.scr2.get(1.0, "end").strip()

@@ -7,6 +7,7 @@ from cryptography.hazmat.backends import default_backend
 from base64 import b64encode, b64decode
 import os
 
+key_1 = b'\x00'*32
 
 class SymmetricCipher:
     def __init__(self, key):
@@ -147,11 +148,12 @@ def main():
                             s.sendto(data, address)  # 发送data和address到客户端
 
             elif json_data["chat_type"] == "private":
+                global key_1
                 recv_user = json_data["recv_user"]
                 send_user = json_data["send_user"]
                 if json_data["message_type"] != "file-data":
-                    symmetric_cipher_decode = SymmetricCipher(user_key[send_user])
-                    symmetric_cipher_encode = SymmetricCipher(user_key[recv_user])
+                    symmetric_cipher_decode = SymmetricCipher(key_1)
+                    symmetric_cipher_encode = SymmetricCipher(key_1)
                     decrypted_content = symmetric_cipher_decode.decrypt(
                         json_data["content"]
                     ).encode("utf-8")
