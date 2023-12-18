@@ -13,7 +13,7 @@ def encrypt_message(message, public_key_str):
         public_key_str.encode(), default_backend()
     ).public_key()
     # 使用公钥加密
-    chunk_size = 128  # 适当的分块大小，具体值根据密钥长度而定
+    chunk_size = 256  # 适当的分块大小，具体值根据密钥长度而定
     ciphertext = b""
     for i in range(0, len(message), chunk_size):
         chunk = message[i : i + chunk_size]
