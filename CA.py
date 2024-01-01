@@ -11,7 +11,7 @@ import socket
 import concurrent.futures
 from pathlib import Path
 
-CA_host = "47.93.254.31"
+CA_host = ""
 CA_port = 54321
 CA_download_port = 12345
 cert_num = 0
