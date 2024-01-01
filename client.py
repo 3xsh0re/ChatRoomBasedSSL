@@ -23,7 +23,7 @@ key = b'\x00'*32
     server：传递的服务器IP和端口
 """
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # 使用udp传输方式
-server = ("47.93.254.31", 9999)
+server = ("", 9999)
 
 
 
