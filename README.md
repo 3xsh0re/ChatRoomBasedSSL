@@ -8,7 +8,7 @@
 ## 证书内容
 ![根CA证书内容](https://github.com/REMIXXYH/ChatRoom/assets/101967837/5e5bb2dc-2a22-4827-8cde-68eeab0f72be)
 
-## 一次完整的证书验证过
+## 一次完整的证书验证过程
 ![一次完整的证书验证过程](https://github.com/REMIXXYH/ChatRoom/assets/101967837/f498e4ec-0c81-4a71-867a-87f067b567fe)
 
 ## 加密通信效果
