@@ -26,11 +26,10 @@ sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # 使用udp传输方式
 server = ("", 9999)
 
 
-
 class SymmetricCipher:
     def __init__(self, key):
         self.key = key
-        self.iv = os.urandom(16)  # 生成随机的 IV，长度根据算法要求
+        self.iv = os.urandom(28)  # 生成随机的 IV，长度根据算法要求
 
     def encrypt(self, plaintext):
         # 使用 PKCS7 填充
@@ -61,10 +60,6 @@ class SymmetricCipher:
         plaintext = unpadder.update(padded_data) + unpadder.finalize()
 
         return plaintext.decode("utf-8")
-
-
-#  ->新加的
-
 
 class ChatClient:
     def client_perform_ssl_handshake(self, name, passwd):

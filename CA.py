@@ -22,14 +22,7 @@ def Gen_rootCA():
     # 生成私钥
     subprocess.run(
         [
-            "openssl",
-            "genrsa",
-            "-des3",
-            "-passout",
-            "pass:3xsh0re",
-            "-out",
-            "rootCA.key",
-            "2048",
+            "openssl","genrsa","-des3","-passout","pass:3xsh0re","-out","rootCA.key","2048",
         ]
     )
     # 指定证书主题字段信息
@@ -37,19 +30,7 @@ def Gen_rootCA():
     # 生成自签名证书
     subprocess.run(
         [
-            "openssl",
-            "req",
-            "-new",
-            "-x509",
-            "-passin",
-            "pass:3xsh0re",
-            "-key",
-            "rootCA.key",
-            "-days",
-            "365",
-            "-out",
-            "rootCA.crt",
-            "-subj",
+            "openssl","req","-new","-x509","-passin","pass:3xsh0re","-key","rootCA.key","-days","365","-out","rootCA.crt","-subj",
             subject_info,
         ],
         capture_output=True,
@@ -90,22 +71,8 @@ def Sign_Cert():
                 print("\033[32m[+]\033[0m申请文件CSR接收成功")
                 # 在这里处理证书请求文件的数据
                 command = [
-                    "openssl",
-                    "x509",
-                    "-req",
-                    "-CA",
-                    "./rootCA.crt",
-                    "-CAkey",
-                    "rootCA.key",
-                    "-CAcreateserial",
-                    "-in",
-                    f"./req_{sig}.csr",
-                    "-passin",
-                    "pass:3xsh0re",
-                    "-out",
-                    f"./req_{sig}.crt",
-                    "-days",
-                    "365",
+                    "openssl","x509","-req","-CA","./rootCA.crt","-CAkey","rootCA.key","-CAcreateserial",
+                    "-in",f"./req_{sig}.csr","-passin","pass:3xsh0re","-out",f"./req_{sig}.crt","-days","365",
                 ]
                 print("\033[32m[+]\033[0m正在查验申请者资质......")
                 print("\033[32m[+]\033[0m打印签发信息:")
@@ -159,14 +126,7 @@ def Download_rootCA():
 def Client_Request_Cert(username, passwd):
     # 生成私钥
     command = [
-        "openssl",
-        "genrsa",
-        "-des3",
-        "-passout",
-        f"pass:{passwd}",
-        "-out",
-        f"{username}_req.key",
-        "2048",
+        "openssl","genrsa","-des3","-passout",f"pass:{passwd}","-out",f"{username}_req.key","2048",
     ]
     result = subprocess.run(command)
     print("result:\n{}".format(result))
@@ -175,18 +135,8 @@ def Client_Request_Cert(username, passwd):
         f"/C=CN/ST=Beijing/L=Haidian/O=USTB_{username}/OU=USTBer/CN=Client_{username}"
     )
     command2 = [
-        "openssl",
-        "req",
-        "-new",
-        "-key",
-        f"{username}_req.key",
-        "-passin",
-        f"pass:{passwd}",
-        "-out",
-        f"{username}_req.csr",
-        "-days",
-        "365",
-        "-subj",
+        "openssl","req","-new","-key",f"{username}_req.key","-passin",
+        f"pass:{passwd}","-out",f"{username}_req.csr","-days","365","-subj",
         subject_info,
     ]
     result = subprocess.run(command2, capture_output=True)
@@ -232,11 +182,7 @@ def Client_Verify():
             csr_file.write(crt_data)
         print(f"\033[32m[+]\033[0mrootCA.crt下载完成,请在当前目录下查看")
         verify_command = [
-            "openssl",
-            "verify",
-            "-CAfile",
-            "./rootCA.crt",
-            "Server_req.crt",
+            "openssl","verify","-CAfile","./rootCA.crt","Server_req.crt",
         ]
         result = subprocess.run(verify_command, capture_output=True, text=True)
         if "OK" in result.stdout.strip():
@@ -257,14 +203,7 @@ def Server_Request_Cert():
     try:
         # 生成私钥
         command = [
-            "openssl",
-            "genrsa",
-            "-des3",
-            "-passout",
-            "pass:USTBServer",
-            "-out",
-            "Server_req.key",
-            "2048",
+            "openssl","genrsa","-des3","-passout","pass:USTBServer","-out","Server_req.key","2048",
         ]
         subprocess.run(command, capture_output=True)
         # 生成证书请求文件CSR
@@ -272,13 +211,8 @@ def Server_Request_Cert():
             f"/C=CN/ST=Beijing/L=Haidian/O=USTB_Server/OU=Server/CN=USTB_Server"
         )
         command2 = [
-            "openssl","req","-new","-key","Server_req.key","-passin",
-            "pass:USTBServer",
-            "-out",
-            "Server_req.csr",
-            "-days",
-            "365",
-            "-subj",
+            "openssl","req","-new","-key","Server_req.key","-passin","pass:USTBServer",
+            "-out","Server_req.csr","-days","365","-subj",
             subject_info,
         ]
         subprocess.run(command2, capture_output=True)
@@ -380,4 +314,5 @@ def CA():
 # Server_Verify("ZZR")
 
 # CA端
-# CA()
+if __name__ == "__main__":
+    CA()
