@@ -187,7 +187,7 @@ class Register(object):
         if usr_name == "" or usr_pwd == "" or usr_repwd == "":
             messagebox.showwarning(title="提示", message="用户名密码不能为空")
         else:
-            # Connect to the database
+            # 无法连接数据库
             conn = sqlite3.connect("yonghu.db")
             cursor = conn.cursor()
             cursor.execute(

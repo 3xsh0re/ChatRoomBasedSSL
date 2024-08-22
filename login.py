@@ -215,12 +215,12 @@ class Login(object):
                                 self.locked_until = time.time() + self.lock_duration
                                 self.failed_attempts = 0  # 重置登录失败次数
                                 messagebox.showerror(
-                                    title="提示", message="登录失败次数过多，账号已被锁定！"
+                                    title="提示", message="失败次数过多，账号已被锁定！"
                                 )
                             else:
-                                messagebox.showerror(title="提示", message="用户名密码错误！")
+                                messagebox.showerror(title="提示", message="用户名或密码错误！")
                 else:
-                    messagebox.showerror(title="提示", message="没有该用户名！")
+                    messagebox.showerror(title="提示", message="没有该用户！")
 
         cursor.close()
         conn.close()

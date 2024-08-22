@@ -1,4 +1,5 @@
 # Python-ChatRoom
+这是一个课程设计,目的是为了熟悉SSL的原理,代码中可能有诸多问题,但不再维护🥺
 ## 双向认证原理及过程
 ![双向认证过程](https://github.com/REMIXXYH/ChatRoom/assets/101967837/1e6596eb-5cbc-4e49-9426-2570f1f2d4f6)
 

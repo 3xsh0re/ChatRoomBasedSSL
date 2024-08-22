@@ -7,7 +7,8 @@ from cryptography.hazmat.backends import default_backend
 from base64 import b64encode, b64decode
 import os
 
-key_1 = b'\x00'*32
+key_1 = b'\x00' * 32
+
 
 class SymmetricCipher:
     def __init__(self, key):
@@ -38,7 +39,7 @@ class SymmetricCipher:
         # 使用 PKCS7 反填充
         unpadder = padding.PKCS7(128).unpadder()
         padded_data = (
-            decryptor.update(b64decode(ciphertext)[16:]) + decryptor.finalize()
+                decryptor.update(b64decode(ciphertext)[16:]) + decryptor.finalize()
         )
         plaintext = unpadder.update(padded_data) + unpadder.finalize()
 
@@ -53,7 +54,6 @@ def main():
     logging.info("UDP Server on %s:%s...", s_addr[0], s_addr[1])
 
     user = {}  # 存放字典{name:addr}
-    user_key = {}  # 存放字典{name,skey}
 
     print("----------服务器已启动-----------")
     print("Bind UDP on " + str(s_addr))
@@ -199,12 +199,12 @@ def main():
                         time.sleep(0.0000000001)  # 防止数据发送太快，服务器来不及接收出错
                         if 1024 * (i + 1) > len(data_total):  # 是否到最后
                             s.sendto(
-                                data_total[1024 * i :], user[recv_user]
+                                data_total[1024 * i:], user[recv_user]
                             )  # 最后一次剩下的数据传给对方
                             print("第" + str(i + 1) + "次发送文件数据")
                         else:
                             s.sendto(
-                                data_total[1024 * i : 1024 * (i + 1)], user[recv_user]
+                                data_total[1024 * i: 1024 * (i + 1)], user[recv_user]
                             )
                             print("第" + str(i + 1) + "次发送文件数据")
 
@@ -212,12 +212,7 @@ def main():
                     print(
                         '%s: "%s" 文件发送完成! from %s:%s [目标:%s] at %s'
                         % (
-                            send_user,
-                            filename,
-                            addr[0],
-                            addr[1],
-                            user[recv_user],
-                            now_time,
+                            send_user, filename, addr[0], addr[1], user[recv_user], now_time,
                         )
                     )
 

@@ -178,7 +178,3 @@ class Emoji(object):
     # 处理发送表情的实例方法
     def mark(self, exp):  # 参数是发的表情图标记, 发送后将按钮销毁
         self.send_mark(exp, self.dics)  # 函数回调把标记作为参数
-        # # 发送完摧毁所有表情包
-        # for i in range(0, 28):
-        #     self.buttom_list[i].destroy()
-        # self.ee = 0  # 把标记置为0

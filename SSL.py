@@ -52,11 +52,6 @@ def decrypt_message(ciphertext, private_key_str, private_key_password):
         decrypted_message += decrypted_chunk
     return decrypted_message
 
-
-# 测试
-# encrypt_and_decrypt("喵喵喵，测试一下加解密喵~", public_key_str, private_key_str, "123456")
-
-
 # 模拟服务器和客户端
 class Server:
     def __init__(self):
@@ -148,7 +143,3 @@ def perform_ssl_handshake():
 
     # 输出共享密钥
     print("\033[32m[SSL]\033[0m共享密钥:", shared_secret)
-
-
-# 执行SSL握手过程
-# perform_ssl_handshake()
